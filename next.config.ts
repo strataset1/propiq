@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
     // are provided and `supabase gen types typescript --linked` is run.
     ignoreBuildErrors: true,
   },
+  // Prevent Turbopack from bundling these Node.js-specific packages —
+  // they use native require() patterns that cause silent build crashes.
+  serverExternalPackages: ["pdf-parse", "@anthropic-ai/sdk", "stripe"],
 };
 
 export default nextConfig;
