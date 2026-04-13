@@ -12,7 +12,6 @@ async function uploadDocument(formData: FormData): Promise<{ ok: true; documentI
     return { ok: false, error: "Missing required fields" };
   }
 
-  // Call the upload API route server-side with the secret injected
   const uploadFormData = new FormData();
   uploadFormData.append("file", file);
   uploadFormData.append("address", address);

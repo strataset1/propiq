@@ -23,7 +23,6 @@ export default async function AdminQueuePage() {
         <p className="text-slate-400 text-sm mt-1">{docs?.length ?? 0} documents awaiting processing</p>
       </div>
 
-      {/* Active batches */}
       {batches && batches.length > 0 && (
         <div className="space-y-3">
           <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wide">Claude Batches</h2>
@@ -45,7 +44,6 @@ export default async function AdminQueuePage() {
         </div>
       )}
 
-      {/* Unprocessed documents */}
       <div className="space-y-3">
         <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wide">Unprocessed Documents</h2>
         {docs?.length === 0 && (
