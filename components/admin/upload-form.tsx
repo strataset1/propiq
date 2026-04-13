@@ -4,7 +4,13 @@ import { useState } from "react";
 
 const DOC_TYPES = ["strata", "building_inspection", "contract", "lease", "council", "other"];
 
-export function UploadForm() {
+type UploadResult = { ok: true; documentId: string } | { ok: false; error: string };
+
+type UploadFormProps = {
+  uploadAction: (formData: FormData) => Promise<UploadResult>;
+};
+
+export function UploadForm({ uploadAction }: UploadFormProps) {
   const [status, setStatus] = useState<"idle" | "uploading" | "done" | "error">("idle");
   const [message, setMessage] = useState("");
 
@@ -13,20 +19,15 @@ export function UploadForm() {
     setStatus("uploading");
 
     const formData = new FormData(e.currentTarget);
-    const res = await fetch("/api/admin/upload", {
-      method: "POST",
-      headers: { "x-admin-secret": process.env.NEXT_PUBLIC_ADMIN_SECRET ?? "" },
-      body: formData,
-    });
+    const result = await uploadAction(formData);
 
-    const data = await res.json();
-    if (res.ok) {
+    if (result.ok) {
       setStatus("done");
-      setMessage(`Uploaded. Document ID: ${data.document_id}`);
+      setMessage(`Uploaded. Document ID: ${result.documentId}`);
       (e.target as HTMLFormElement).reset();
     } else {
       setStatus("error");
-      setMessage(data.error ?? "Upload failed");
+      setMessage(result.error);
     }
   }
 
