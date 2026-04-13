@@ -1,27 +1,39 @@
+import { Redis } from "@upstash/redis";
+
 const LIMIT = 100;
-const WINDOW_MS = 60_000;
+const WINDOW_SECONDS = 60;
 
-type Window = { count: number; resetAt: number };
-const store = new Map<string, Window>();
+// Lazy-initialise so the module can be imported in tests without crashing
+let _redis: Redis | null = null;
 
-export function checkRateLimit(keyId: string): { allowed: boolean; remaining: number } {
-  const now = Date.now();
-  const window = store.get(keyId);
-
-  if (!window || now >= window.resetAt) {
-    store.set(keyId, { count: 1, resetAt: now + WINDOW_MS });
-    return { allowed: true, remaining: LIMIT - 1 };
+function getRedis(): Redis {
+  if (!_redis) {
+    _redis = new Redis({
+      url: process.env.UPSTASH_REDIS_URL!,
+      token: process.env.UPSTASH_REDIS_TOKEN!,
+    });
   }
-
-  if (window.count >= LIMIT) {
-    return { allowed: false, remaining: 0 };
-  }
-
-  window.count++;
-  return { allowed: true, remaining: LIMIT - window.count };
+  return _redis;
 }
 
-/** Only for use in tests. */
-export function _resetForTesting(): void {
-  store.clear();
+export async function checkRateLimit(
+  keyId: string
+): Promise<{ allowed: boolean; remaining: number }> {
+  const redis = getRedis();
+  const key = `rl:${keyId}`;
+
+  // INCR is atomic — safe under concurrent requests
+  const count = await redis.incr(key);
+  if (count === 1) {
+    // First request in window — set expiry
+    await redis.expire(key, WINDOW_SECONDS);
+  }
+
+  const remaining = Math.max(0, LIMIT - count);
+  return { allowed: count <= LIMIT, remaining };
+}
+
+/** Only for use in tests — overrides the Redis instance. */
+export function _setRedisForTesting(instance: Redis): void {
+  _redis = instance;
 }

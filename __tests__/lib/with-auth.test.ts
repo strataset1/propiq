@@ -24,7 +24,7 @@ const mockKey = { id: "key-1", org_id: "org-1" };
 describe("withAuth", () => {
   beforeEach(() => {
     vi.mocked(validateApiKey).mockResolvedValue({ ok: true, org: mockOrg, apiKey: mockKey });
-    vi.mocked(checkRateLimit).mockReturnValue({ allowed: true, remaining: 99 });
+    vi.mocked(checkRateLimit).mockResolvedValue({ allowed: true, remaining: 99 });
     vi.mocked(checkQuota).mockResolvedValue({ allowed: true, used: 10, remaining: 490 });
   });
 
@@ -55,7 +55,7 @@ describe("withAuth", () => {
   });
 
   it("returns 429 when rate limited", async () => {
-    vi.mocked(checkRateLimit).mockReturnValue({ allowed: false, remaining: 0 });
+    vi.mocked(checkRateLimit).mockResolvedValue({ allowed: false, remaining: 0 });
     const handler = vi.fn();
     const wrappedHandler = withAuth(handler);
     const req = new NextRequest("http://localhost/api/v1/test");

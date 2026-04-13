@@ -22,7 +22,7 @@ export function withAuth(handler: RouteHandler) {
 
     const { org, apiKey } = authResult;
 
-    const rateLimit = checkRateLimit(apiKey.id);
+    const rateLimit = await checkRateLimit(apiKey.id);
     if (!rateLimit.allowed) {
       return apiError(ApiErrorCode.RATE_LIMITED);
     }
