@@ -1,14 +1,12 @@
-import { createBrowserClient } from "@supabase/ssr";
+// __tests__/supabase-client.test.ts
+import { createClient } from "@/lib/supabase/client";
 
-describe("Supabase client", () => {
+describe("Supabase browser client", () => {
   it("initialises with env vars", () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL = "https://test.supabase.co";
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "test-key";
 
-    const client = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    );
+    const client = createClient();
 
     expect(client).toBeDefined();
   });
