@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { PortalNav } from "@/components/portal/nav";
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
