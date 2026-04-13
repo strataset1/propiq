@@ -1,12 +1,20 @@
+// app/(portal)/api-keys/page.tsx
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { ApiKeyCard } from "@/components/portal/api-key-card";
 import { sha256 } from "@/lib/utils/hash";
 import { randomBytes } from "crypto";
 
-export default async function ApiKeysPage() {
+export default async function ApiKeysPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ created?: string }>;
+}) {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
   const service = createServiceClient();
@@ -25,13 +33,24 @@ export default async function ApiKeysPage() {
     .eq("is_active", true)
     .order("created_at", { ascending: false });
 
+  // Read and immediately clear the newly created key cookie
+  const cookieStore = await cookies();
+  const newKeyValue = cookieStore.get("new_api_key")?.value ?? null;
+  if (newKeyValue) {
+    cookieStore.delete("new_api_key");
+  }
+
+  const params = await searchParams;
+
   async function createKey(formData: FormData) {
     "use server";
     const label = formData.get("label") as string;
     if (!label?.trim()) return;
 
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return;
 
     const service = createServiceClient();
@@ -52,6 +71,16 @@ export default async function ApiKeysPage() {
       is_active: true,
     });
 
+    // Store the raw key in a short-lived cookie — read once on next page load, then deleted
+    const cookieStore = await cookies();
+    cookieStore.set("new_api_key", rawKey, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/api-keys",
+      maxAge: 60, // 60 seconds — gone after one page load
+    });
+
     redirect("/api-keys?created=true");
   }
 
@@ -59,14 +88,13 @@ export default async function ApiKeysPage() {
     "use server";
     const id = formData.get("id") as string;
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return;
 
     const service = createServiceClient();
-    await service
-      .from("api_keys")
-      .update({ is_active: false })
-      .eq("id", id);
+    await service.from("api_keys").update({ is_active: false }).eq("id", id);
 
     redirect("/api-keys");
   }
@@ -76,7 +104,9 @@ export default async function ApiKeysPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-white">API Keys</h1>
-          <p className="text-slate-400 text-sm mt-1">Keys are shown once on creation and cannot be retrieved again.</p>
+          <p className="text-slate-400 text-sm mt-1">
+            Keys are shown once on creation and cannot be retrieved again.
+          </p>
         </div>
         <form action={createKey} className="flex gap-2">
           <input
@@ -94,8 +124,22 @@ export default async function ApiKeysPage() {
         </form>
       </div>
 
-      {keys?.length === 0 && (
-        <p className="text-slate-500 text-sm py-8 text-center">No API keys yet. Create one above.</p>
+      {/* Show newly created key exactly once */}
+      {newKeyValue && (
+        <div className="bg-emerald-950 border border-emerald-700 rounded-xl p-5 space-y-2">
+          <p className="text-emerald-300 text-sm font-medium">
+            New API key created — copy it now. You won&apos;t be able to see it again.
+          </p>
+          <code className="block bg-slate-950 rounded-lg px-4 py-3 text-emerald-400 font-mono text-sm break-all select-all">
+            {newKeyValue}
+          </code>
+        </div>
+      )}
+
+      {keys?.length === 0 && !newKeyValue && (
+        <p className="text-slate-500 text-sm py-8 text-center">
+          No API keys yet. Create one above.
+        </p>
       )}
 
       <div className="space-y-3">
