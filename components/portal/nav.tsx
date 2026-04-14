@@ -17,7 +17,7 @@ export function PortalNav() {
   return (
     <nav className="border-b border-slate-800 bg-slate-950">
       <div className="max-w-5xl mx-auto px-6 flex items-center justify-between h-14">
-        <span className="text-white font-mono font-semibold text-sm">PropIQ API</span>
+        <span className="text-white font-mono font-semibold text-sm">Strataset API</span>
         <div className="flex items-center gap-1">
           {links.map((link) => (
             <Link
