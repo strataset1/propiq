@@ -27,7 +27,7 @@ export async function handleSubscriptionUpdated(
   await supabase
     .from("organisations")
     .update({
-      plan,
+      plan: plan as "starter" | "growth" | "enterprise",
       stripe_subscription_id: subscriptionId,
       monthly_quota: PLAN_QUOTAS[plan] ?? 500,
     })

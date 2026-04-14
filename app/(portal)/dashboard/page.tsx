@@ -13,7 +13,7 @@ export default async function DashboardPage() {
   const { data: org } = await service
     .from("organisations")
     .select("*")
-    .eq("owner_email", user.email)
+    .eq("owner_email", user.email!)
     .single();
 
   if (!org) {

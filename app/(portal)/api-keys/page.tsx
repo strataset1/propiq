@@ -21,7 +21,7 @@ export default async function ApiKeysPage({
   const { data: org } = await service
     .from("organisations")
     .select("id")
-    .eq("owner_email", user.email)
+    .eq("owner_email", user.email!)
     .single();
 
   if (!org) redirect("/dashboard");
@@ -57,7 +57,7 @@ export default async function ApiKeysPage({
     const { data: org } = await service
       .from("organisations")
       .select("id")
-      .eq("owner_email", user.email)
+      .eq("owner_email", user.email!)
       .single();
     if (!org) return;
 

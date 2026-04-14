@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   const { data: org } = await service
     .from("organisations")
     .select("stripe_customer_id")
-    .eq("owner_email", user.email)
+    .eq("owner_email", user.email!)
     .single();
 
   if (!org?.stripe_customer_id) {

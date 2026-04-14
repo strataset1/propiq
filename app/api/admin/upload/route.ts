@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
     .from("documents")
     .insert({
       property_id: property.id,
-      type: docType,
+      type: docType as "strata" | "building_inspection" | "contract" | "lease" | "council" | "other",
       label,
       storage_path: storagePath,
       file_hash: fileHash,
