@@ -1,5 +1,4 @@
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const pdf = require("pdf-parse") as (buffer: Buffer) => Promise<{ text: string; numpages: number }>;
+import { PDFParse } from "pdf-parse";
 
 export type ExtractResult = {
   text: string;
@@ -16,9 +15,10 @@ export function isLikelyScanned(text: string, pageCount: number): boolean {
 }
 
 export async function extractText(pdfBuffer: Buffer): Promise<ExtractResult> {
-  const parsed = await pdf(pdfBuffer);
+  const parser = new PDFParse({ data: pdfBuffer });
+  const parsed = await parser.getText();
   const text = parsed.text.trim();
-  const pageCount = parsed.numpages;
+  const pageCount = parsed.totalPages;
   const likelyScanned = isLikelyScanned(text, pageCount);
 
   return { text, pageCount, likelyScanned };
