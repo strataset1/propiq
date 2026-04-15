@@ -81,6 +81,27 @@ async function processQueue(): Promise<{ ok: true; queued: number; batchId: stri
   return { ok: true, queued: docs.length, batchId };
 }
 
+async function deleteOne(docId: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  "use server";
+
+  const supabase = createServiceClient();
+
+  const { data: doc } = await supabase
+    .from("documents")
+    .select("storage_path")
+    .eq("id", docId)
+    .single();
+
+  if (doc?.storage_path) {
+    await supabase.storage.from("property-documents").remove([doc.storage_path]);
+  }
+
+  const { error } = await supabase.from("documents").delete().eq("id", docId);
+  if (error) return { ok: false, error: "Failed to delete document" };
+
+  return { ok: true };
+}
+
 async function processOne(docId: string): Promise<{ ok: true } | { ok: false; error: string }> {
   "use server";
 
@@ -214,6 +235,7 @@ export default async function AdminQueuePage() {
               hasStorage: !!doc.storage_path,
             }}
             processOne={processOne}
+            deleteOne={deleteOne}
           />
         ))}
       </div>
