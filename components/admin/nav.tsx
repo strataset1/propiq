@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 
 const links = [
   { href: "/admin/upload", label: "Upload" },
+  { href: "/admin/bulk-upload", label: "Bulk Upload" },
+  { href: "/admin/crawl", label: "Crawler" },
   { href: "/admin/queue", label: "Queue" },
   { href: "/admin/orgs", label: "Organisations" },
 ];
@@ -14,7 +16,7 @@ export function AdminNav() {
   return (
     <nav className="border-b border-amber-900/40 bg-slate-950">
       <div className="max-w-6xl mx-auto px-6 flex items-center justify-between h-14">
-        <span className="text-amber-400 font-mono font-semibold text-sm">PropIQ Admin</span>
+        <span className="text-amber-400 font-mono font-semibold text-sm">Strataset Admin</span>
         <div className="flex items-center gap-1">
           {links.map((link) => (
             <Link
