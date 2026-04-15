@@ -1,13 +1,65 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { createBatch } from "@/lib/processing/batch";
 import { ProcessButton } from "./process-button";
+import { DocumentRow } from "./document-row";
+import Anthropic from "@anthropic-ai/sdk";
+
+const SYSTEM_PROMPT = `You are a property document analyst specialising in Australian strata by-laws and property reports.
+Extract the following attributes from the document. For each attribute respond with:
+- value: "yes", "no", or "maybe"
+- detail: brief plain-English note (1-2 sentences, or null if not mentioned)
+- legal_summary: the exact by-law clause or legal language verbatim, or null if not present`;
+
+const USER_PROMPT = (docType: string, text?: string) => `Document type: ${docType}
+
+Extract these attributes and return ONLY a JSON code block with no other text:
+
+\`\`\`json
+{
+  "short_term_rental": { "value": "yes|no|maybe", "detail": "...", "legal_summary": "..." },
+  "pets_allowed": { "value": "yes|no|maybe", "detail": "...", "legal_summary": "..." },
+  "interior_renovations": { "value": "yes|no|maybe", "detail": "...", "legal_summary": "..." },
+  "exterior_renovations": { "value": "yes|no|maybe", "detail": "...", "legal_summary": "..." },
+  "confidence": 0.0
+}
+\`\`\`
+${text ? `\nDocument text:\n${text.slice(0, 8000)}` : "\nExtract from the attached PDF document."}`;
+
+async function saveExtraction(docId: string, propertyId: string, text: string) {
+  const supabase = createServiceClient();
+  const match = text.match(/```json\s*([\s\S]*?)```/) ?? [null, text.match(/\{[\s\S]*\}/)?.[0]];
+  const raw = match[1];
+  if (!raw) throw new Error("Unparseable response");
+  const extraction = JSON.parse(raw);
+
+  await supabase.from("strata_bylaws").upsert({
+    document_id: docId,
+    property_id: propertyId,
+    short_term_rental_value: extraction.short_term_rental?.value,
+    short_term_rental_detail: extraction.short_term_rental?.detail,
+    short_term_rental_legal: extraction.short_term_rental?.legal_summary,
+    pets_allowed_value: extraction.pets_allowed?.value,
+    pets_allowed_detail: extraction.pets_allowed?.detail,
+    pets_allowed_legal: extraction.pets_allowed?.legal_summary,
+    interior_renovations_value: extraction.interior_renovations?.value,
+    interior_renovations_detail: extraction.interior_renovations?.detail,
+    interior_renovations_legal: extraction.interior_renovations?.legal_summary,
+    exterior_renovations_value: extraction.exterior_renovations?.value,
+    exterior_renovations_detail: extraction.exterior_renovations?.detail,
+    exterior_renovations_legal: extraction.exterior_renovations?.legal_summary,
+    confidence: extraction.confidence,
+    model_version: "claude-sonnet-4-6",
+    processed_at: new Date().toISOString(),
+  });
+
+  await supabase.from("documents").update({ processed_at: new Date().toISOString() }).eq("id", docId);
+}
 
 async function processQueue(): Promise<{ ok: true; queued: number; batchId: string } | { ok: false; error: string; queued?: number }> {
   "use server";
 
   const supabase = createServiceClient();
 
-  // Only process docs that already have extracted_text (set by the local crawler)
   const { data: docs, error } = await supabase
     .from("documents")
     .select("id, type, extracted_text")
@@ -29,12 +81,78 @@ async function processQueue(): Promise<{ ok: true; queued: number; batchId: stri
   return { ok: true, queued: docs.length, batchId };
 }
 
+async function processOne(docId: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  "use server";
+
+  const supabase = createServiceClient();
+
+  const { data: doc } = await supabase
+    .from("documents")
+    .select("id, type, extracted_text, storage_path, property_id")
+    .eq("id", docId)
+    .single();
+
+  if (!doc) return { ok: false, error: "Document not found" };
+
+  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  let responseText: string;
+
+  if (doc.extracted_text && doc.extracted_text.length > 200) {
+    // Text-based PDF — send as text
+    const message = await anthropic.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 1024,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: "user", content: USER_PROMPT(doc.type, doc.extracted_text) }],
+    });
+    responseText = message.content[0].type === "text" ? message.content[0].text : "";
+
+  } else if (doc.storage_path) {
+    // Scanned PDF — download and send directly to Claude vision
+    const { data: fileData, error: dlError } = await supabase.storage
+      .from("property-documents")
+      .download(doc.storage_path);
+
+    if (dlError || !fileData) return { ok: false, error: "Could not download PDF from storage" };
+
+    const buffer = Buffer.from(await fileData.arrayBuffer());
+    const base64 = buffer.toString("base64");
+
+    const message = await anthropic.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 1024,
+      system: SYSTEM_PROMPT,
+      messages: [{
+        role: "user",
+        content: [
+          {
+            type: "document",
+            source: { type: "base64", media_type: "application/pdf", data: base64 },
+          } as Parameters<typeof anthropic.messages.create>[0]["messages"][0]["content"][0],
+          { type: "text", text: USER_PROMPT(doc.type) },
+        ],
+      }],
+    });
+    responseText = message.content[0].type === "text" ? message.content[0].text : "";
+
+  } else {
+    return { ok: false, error: "No text or PDF available" };
+  }
+
+  try {
+    await saveExtraction(docId, doc.property_id, responseText);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: `Failed to save: ${e instanceof Error ? e.message : "unknown"}` };
+  }
+}
+
 export default async function AdminQueuePage() {
   const supabase = createServiceClient();
 
   const { data: docs } = await supabase
     .from("documents")
-    .select("id, label, type, ingested_via, processed_at, created_at, properties(address_raw)")
+    .select("id, label, type, ingested_via, processed_at, created_at, extracted_text, storage_path, properties(address_raw)")
     .is("processed_at", null)
     .order("created_at", { ascending: false })
     .limit(100);
@@ -45,6 +163,8 @@ export default async function AdminQueuePage() {
     .order("created_at", { ascending: false })
     .limit(20);
 
+  const docsWithText = docs?.filter((d) => d.extracted_text && d.extracted_text.length > 200) ?? [];
+
   return (
     <div className="space-y-8">
       <div className="flex items-start justify-between">
@@ -52,7 +172,7 @@ export default async function AdminQueuePage() {
           <h1 className="text-xl font-semibold text-white">Processing Queue</h1>
           <p className="text-slate-400 text-sm mt-1">{docs?.length ?? 0} documents awaiting processing</p>
         </div>
-        {(docs?.length ?? 0) > 0 && <ProcessButton processAction={processQueue} />}
+        {docsWithText.length > 0 && <ProcessButton processAction={processQueue} />}
       </div>
 
       {batches && batches.length > 0 && (
@@ -82,17 +202,19 @@ export default async function AdminQueuePage() {
           <p className="text-slate-500 text-sm py-4 text-center">Queue is empty.</p>
         )}
         {docs?.map((doc) => (
-          <div key={doc.id} className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-white text-sm">{doc.label}</p>
-                <p className="text-slate-500 text-xs mt-0.5 font-mono">
-                  {(doc.properties as { address_raw: string } | null)?.address_raw} · {doc.type} · via {doc.ingested_via}
-                </p>
-              </div>
-              <span className="text-amber-400 text-xs bg-amber-950 px-2 py-0.5 rounded">pending</span>
-            </div>
-          </div>
+          <DocumentRow
+            key={doc.id}
+            doc={{
+              id: doc.id,
+              label: doc.label,
+              type: doc.type,
+              ingested_via: doc.ingested_via,
+              properties: doc.properties as { address_raw: string } | null,
+              isScanned: !doc.extracted_text || doc.extracted_text.length <= 200,
+              hasStorage: !!doc.storage_path,
+            }}
+            processOne={processOne}
+          />
         ))}
       </div>
     </div>
