@@ -15,6 +15,8 @@ export async function POST(req: NextRequest) {
   const addressRaw = formData.get("address") as string | null;
   const docType = formData.get("type") as string | null;
   const label = formData.get("label") as string | null;
+  const extractedText = formData.get("extracted_text") as string | null;
+  const pageCount = formData.get("page_count") ? parseInt(formData.get("page_count") as string) : null;
 
   if (!file || !addressRaw || !docType || !label) {
     return NextResponse.json({ error: "Missing required fields: file, address, type, label" }, { status: 400 });
@@ -72,6 +74,8 @@ export async function POST(req: NextRequest) {
       label,
       storage_path: storagePath,
       file_hash: fileHash,
+      extracted_text: extractedText ?? null,
+      page_count: pageCount ?? null,
       ingested_via: "manual",
     })
     .select()
