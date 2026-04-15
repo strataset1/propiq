@@ -1,26 +1,39 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { CrawlPanel } from "@/components/admin/crawl-panel";
+import { searchSuburbForPdfs } from "@/lib/crawler/search";
+import { ingestPdfFromUrl } from "@/lib/crawler/ingest";
 
 async function crawlSuburb(suburb: string): Promise<{
   skipped?: boolean;
   reason?: string;
   docsFound?: number;
-  ingested?: { url: string; address: string }[];
-  skippedUrls?: { url: string; reason: string }[];
   error?: string;
 }> {
   "use server";
 
-  const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/admin/crawl`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-admin-secret": process.env.ADMIN_SECRET!,
-    },
-    body: JSON.stringify({ suburb }),
-  });
+  const supabase = createServiceClient();
 
-  return res.json();
+  // Check if already crawled
+  const { data: existing } = await supabase
+    .from("suburb_crawls")
+    .select("id")
+    .eq("suburb", suburb)
+    .single();
+
+  if (existing) return { skipped: true, reason: "Already crawled" };
+
+  // Search and ingest
+  const results = await searchSuburbForPdfs(suburb);
+  let docsFound = 0;
+
+  for (const result of results) {
+    const outcome = await ingestPdfFromUrl(result.url, suburb, supabase);
+    if (outcome.ok) docsFound++;
+  }
+
+  await supabase.from("suburb_crawls").insert({ suburb, docs_found: docsFound });
+
+  return { docsFound };
 }
 
 export default async function CrawlPage() {
