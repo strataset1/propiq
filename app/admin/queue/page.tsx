@@ -139,17 +139,18 @@ async function processOne(docId: string): Promise<{ ok: true } | { ok: false; er
     const buffer = Buffer.from(await fileData.arrayBuffer());
     const base64 = buffer.toString("base64");
 
-    const message = await anthropic.messages.create({
+    const message = await anthropic.beta.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 1024,
       system: SYSTEM_PROMPT,
+      betas: ["pdfs-2024-09-25"],
       messages: [{
         role: "user",
         content: [
           {
             type: "document",
             source: { type: "base64", media_type: "application/pdf", data: base64 },
-          } as Parameters<typeof anthropic.messages.create>[0]["messages"][0]["content"][0],
+          },
           { type: "text", text: USER_PROMPT(doc.type) },
         ],
       }],
