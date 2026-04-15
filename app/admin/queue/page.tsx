@@ -1,5 +1,4 @@
 import { createServiceClient } from "@/lib/supabase/server";
-import { extractText } from "@/lib/processing/extract-text";
 import { createBatch } from "@/lib/processing/batch";
 import { ProcessButton } from "./process-button";
 
@@ -8,56 +7,26 @@ async function processQueue(): Promise<{ ok: true; queued: number; batchId: stri
 
   const supabase = createServiceClient();
 
+  // Only process docs that already have extracted_text (set by the local crawler)
   const { data: docs, error } = await supabase
     .from("documents")
-    .select("id, storage_path, type, extracted_text")
+    .select("id, type, extracted_text")
     .is("processed_at", null)
-    .not("storage_path", "is", null)
+    .not("extracted_text", "is", null)
     .limit(25);
 
   if (error) return { ok: false, error: "Failed to fetch documents" };
-  if (!docs || docs.length === 0) return { ok: false, error: "No documents in queue" };
+  if (!docs || docs.length === 0) return { ok: false, error: "No documents with extracted text in queue" };
 
-  const docsWithText: { id: string; type: string; extracted_text: string | null }[] = [];
-
-  for (const doc of docs) {
-    if (doc.extracted_text) {
-      docsWithText.push({ id: doc.id, type: doc.type, extracted_text: doc.extracted_text });
-      continue;
-    }
-
-    const { data: fileData, error: downloadError } = await supabase.storage
-      .from("property-documents")
-      .download(doc.storage_path!);
-
-    if (downloadError || !fileData) continue;
-
-    try {
-      const buffer = Buffer.from(await fileData.arrayBuffer());
-      const { text, pageCount } = await extractText(buffer);
-
-      await supabase
-        .from("documents")
-        .update({ extracted_text: text, page_count: pageCount })
-        .eq("id", doc.id);
-
-      docsWithText.push({ id: doc.id, type: doc.type, extracted_text: text });
-    } catch {
-      // skip failed extractions
-    }
-  }
-
-  if (docsWithText.length === 0) return { ok: false, error: "Could not extract text from any documents" };
-
-  const batchId = await createBatch(docsWithText);
+  const batchId = await createBatch(docs);
 
   await supabase.from("processing_batches").insert({
     batch_id: batchId,
-    doc_ids: docsWithText.map((d) => d.id),
+    doc_ids: docs.map((d) => d.id),
     status: "in_progress",
   });
 
-  return { ok: true, queued: docsWithText.length, batchId };
+  return { ok: true, queued: docs.length, batchId };
 }
 
 export default async function AdminQueuePage() {
