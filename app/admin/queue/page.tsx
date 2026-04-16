@@ -53,6 +53,7 @@ async function saveExtraction(docId: string, propertyId: string, text: string) {
   });
 
   await supabase.from("documents").update({ processed_at: new Date().toISOString() }).eq("id", docId);
+  await supabase.from("properties").update({ status: "ready" }).eq("id", propertyId);
 }
 
 async function processQueue(): Promise<{ ok: true; queued: number; batchId: string } | { ok: false; error: string; queued?: number }> {
