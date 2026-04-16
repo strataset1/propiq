@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { flushSync } from "react-dom";
 import { PDFParse } from "pdf-parse";
 
 const DOC_TYPES = ["strata", "building_inspection", "contract", "lease", "council", "other"];
@@ -46,7 +47,7 @@ export function UploadForm({ uploadAction }: UploadFormProps) {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setStatus("uploading");
+    flushSync(() => setStatus("uploading"));
 
     const formData = new FormData(e.currentTarget);
     if (extractedRef.current.text) formData.append("extracted_text", extractedRef.current.text);

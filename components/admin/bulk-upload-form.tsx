@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { flushSync } from "react-dom";
 import { PDFParse } from "pdf-parse";
 
 const DOC_TYPES = ["strata", "building_inspection", "contract", "lease", "council", "other"];
@@ -97,7 +98,7 @@ export function BulkUploadForm({ uploadAction }: BulkUploadFormProps) {
         continue;
       }
 
-      update(entry.id, { status: "uploading", message: "" });
+      flushSync(() => update(entry.id, { status: "uploading", message: "" }));
 
       const formData = new FormData();
       formData.append("file", entry.file);

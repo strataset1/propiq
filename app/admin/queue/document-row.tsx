@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { flushSync } from "react-dom";
 
 type DocumentRowProps = {
   doc: {
@@ -23,7 +24,7 @@ export function DocumentRow({ doc, processOne, deleteOne }: DocumentRowProps) {
   const canProcess = doc.hasStorage || !doc.isScanned;
 
   async function handle() {
-    setState("processing");
+    flushSync(() => setState("processing"));
     const result = await processOne(doc.id);
     if (result.ok) {
       setState("done");
@@ -34,7 +35,7 @@ export function DocumentRow({ doc, processOne, deleteOne }: DocumentRowProps) {
   }
 
   async function handleDelete() {
-    setState("deleting");
+    flushSync(() => setState("deleting"));
     const result = await deleteOne(doc.id);
     if (result.ok) {
       setState("done");
