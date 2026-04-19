@@ -16,6 +16,7 @@ Extract these attributes and return ONLY a JSON code block with no other text:
 
 \`\`\`json
 {
+  "document_date": "YYYY-MM-DD or null if not found",
   "short_term_rental": { "value": "yes|no|maybe", "detail": "...", "legal_summary": "..." },
   "pets_allowed": { "value": "yes|no|maybe", "detail": "...", "legal_summary": "..." },
   "interior_renovations": { "value": "yes|no|maybe", "detail": "...", "legal_summary": "..." },
@@ -23,6 +24,8 @@ Extract these attributes and return ONLY a JSON code block with no other text:
   "confidence": 0.0
 }
 \`\`\`
+
+For document_date: look for the date the by-law was registered, adopted, or last amended. Return in YYYY-MM-DD format, or null if not present.
 ${text ? `\nDocument text:\n${text.slice(0, 8000)}` : "\nExtract from the attached PDF document."}`;
 
 async function saveExtraction(docId: string, propertyId: string, text: string) {
@@ -35,6 +38,7 @@ async function saveExtraction(docId: string, propertyId: string, text: string) {
   await supabase.from("strata_bylaws").upsert({
     document_id: docId,
     property_id: propertyId,
+    document_date: extraction.document_date ?? null,
     short_term_rental_value: extraction.short_term_rental?.value,
     short_term_rental_detail: extraction.short_term_rental?.detail,
     short_term_rental_legal: extraction.short_term_rental?.legal_summary,
