@@ -16,6 +16,7 @@ Extract these attributes and return ONLY a JSON code block with no other text:
 
 \`\`\`json
 {
+  "address": "full street address of the property e.g. 12 Smith St, Newtown NSW 2042, or null if not found",
   "document_date": "YYYY-MM-DD or null if not found",
   "short_term_rental": { "value": "yes|no|maybe", "detail": "...", "legal_summary": "..." },
   "pets_allowed": { "value": "yes|no|maybe", "detail": "...", "legal_summary": "..." },
@@ -25,6 +26,7 @@ Extract these attributes and return ONLY a JSON code block with no other text:
 }
 \`\`\`
 
+For address: extract the full street address of the specific property or building this document relates to. Include street number, street name, suburb, state and postcode if present. Return null if no specific address is found.
 For document_date: look for the date the by-law was registered, adopted, or last amended. Return in YYYY-MM-DD format, or null if not present.
 ${text ? `\nDocument text:\n${text.slice(0, 8000)}` : "\nExtract from the attached PDF document."}`;
 
@@ -57,7 +59,19 @@ async function saveExtraction(docId: string, propertyId: string, text: string) {
   });
 
   await supabase.from("documents").update({ processed_at: new Date().toISOString() }).eq("id", docId);
-  await supabase.from("properties").update({ status: "ready" }).eq("id", propertyId);
+
+  // If Claude extracted a specific address, update the property record
+  if (extraction.address) {
+    const { normaliseAddress } = await import("@/lib/utils/address");
+    const normalised = await normaliseAddress(extraction.address);
+    await supabase.from("properties").update({
+      address_raw: extraction.address,
+      address_normalised: normalised,
+      status: "ready",
+    }).eq("id", propertyId);
+  } else {
+    await supabase.from("properties").update({ status: "ready" }).eq("id", propertyId);
+  }
 }
 
 async function processQueue(): Promise<{ ok: true; queued: number; batchId: string } | { ok: false; error: string; queued?: number }> {
