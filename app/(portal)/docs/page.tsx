@@ -1,4 +1,4 @@
-const BASE_URL = "https://api.strataset.com.au/v1";
+const BASE_URL = "https://propiq-eta.vercel.app/api/v1";
 
 const endpoints = [
   {
