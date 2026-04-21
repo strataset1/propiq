@@ -5,7 +5,7 @@ import { apiError, ApiErrorCode } from "@/lib/api/errors";
 import { createServiceClient } from "@/lib/supabase/server";
 
 export const GET = withAuth(async (_req: NextRequest, ctx: any, _auth) => {
-  const id = ctx.params?.id as string;
+  const id = (await ctx.params)?.id as string;
   const supabase = createServiceClient();
 
   const doc = await findDocumentById(id, supabase);

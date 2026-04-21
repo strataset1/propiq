@@ -10,7 +10,7 @@ function propertyIdFromJobId(jobId: string): string {
 }
 
 export const GET = withAuth(async (_req: NextRequest, ctx: any, _auth) => {
-  const jobId = ctx.params?.id as string;
+  const jobId = (await ctx.params)?.id as string;
   const propertyId = propertyIdFromJobId(jobId);
   const supabase = createServiceClient();
 

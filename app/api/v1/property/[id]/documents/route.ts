@@ -8,7 +8,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 const SIGNED_URL_EXPIRY_SECONDS = 60 * 15; // 15 minutes
 
 export const GET = withAuth(async (_req: NextRequest, ctx: any, _auth) => {
-  const id = ctx.params?.id as string;
+  const id = (await ctx.params)?.id as string;
   const supabase = createServiceClient();
 
   const property = await findPropertyById(id, supabase);
