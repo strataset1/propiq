@@ -142,8 +142,8 @@ export default function LookupPage() {
                 <p className="text-white font-semibold text-base">{result.address_raw}</p>
                 <p className="text-slate-500 text-xs mt-0.5 font-mono">{result.address_normalised}</p>
               </div>
-              <span className={`text-xs px-2 py-1 rounded font-mono shrink-0 ${result.status === "ready" ? "bg-emerald-950 text-emerald-400" : "bg-amber-950 text-amber-400"}`}>
-                {result.status}
+              <span className="text-xs px-2 py-1 rounded font-mono shrink-0 bg-emerald-950 text-emerald-400">
+                processed
               </span>
             </div>
             <div className="flex items-center gap-4 border-t border-slate-800 pt-3">
