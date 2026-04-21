@@ -148,7 +148,6 @@ export default async function ApiKeysPage({
               label={key.label}
               lastUsedAt={key.last_used_at}
               createdAt={key.created_at}
-              onRevoke={() => {}}
             />
           </form>
         ))}

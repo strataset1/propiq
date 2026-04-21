@@ -7,10 +7,9 @@ type ApiKeyCardProps = {
   label: string;
   lastUsedAt: string | null;
   createdAt: string;
-  onRevoke: (id: string) => void;
 };
 
-export function ApiKeyCard({ id, label, lastUsedAt, createdAt, onRevoke }: ApiKeyCardProps) {
+export function ApiKeyCard({ id, label, lastUsedAt, createdAt }: ApiKeyCardProps) {
   const [confirming, setConfirming] = useState(false);
 
   return (
@@ -40,7 +39,7 @@ export function ApiKeyCard({ id, label, lastUsedAt, createdAt, onRevoke }: ApiKe
         ) : (
           <div className="flex gap-1">
             <button
-              onClick={() => onRevoke(id)}
+              type="submit"
               className="text-red-400 text-xs bg-red-950 border border-red-800 px-2 py-1 rounded hover:bg-red-900"
             >
               Confirm
