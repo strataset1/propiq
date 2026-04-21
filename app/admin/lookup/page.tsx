@@ -136,23 +136,36 @@ export default function LookupPage() {
       {result && (
         <div className="space-y-6">
           {/* Property header */}
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-white font-medium">{result.address_raw}</p>
+                <p className="text-white font-semibold text-base">{result.address_raw}</p>
                 <p className="text-slate-500 text-xs mt-0.5 font-mono">{result.address_normalised}</p>
               </div>
-              <div className="text-right shrink-0 space-y-1">
-                <span className={`text-xs px-2 py-1 rounded font-mono ${result.status === "ready" ? "bg-emerald-950 text-emerald-400" : "bg-amber-950 text-amber-400"}`}>
-                  {result.status}
-                </span>
-                {result.confidence !== null && (
-                  <p className="text-slate-500 text-xs">Confidence: {Math.round(result.confidence * 100)}%</p>
-                )}
-                {result.document_date && (
-                  <p className="text-slate-500 text-xs">By-law date: {result.document_date}</p>
-                )}
-              </div>
+              <span className={`text-xs px-2 py-1 rounded font-mono shrink-0 ${result.status === "ready" ? "bg-emerald-950 text-emerald-400" : "bg-amber-950 text-amber-400"}`}>
+                {result.status}
+              </span>
+            </div>
+            <div className="flex items-center gap-4 border-t border-slate-800 pt-3">
+              {result.document_date ? (
+                <div>
+                  <p className="text-slate-500 text-xs uppercase tracking-wide">By-law date</p>
+                  <p className="text-white text-sm mt-0.5">{new Date(result.document_date).toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" })}</p>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-slate-500 text-xs uppercase tracking-wide">By-law date</p>
+                  <p className="text-slate-600 text-sm mt-0.5">Not found in document</p>
+                </div>
+              )}
+              {result.confidence !== null && (
+                <div>
+                  <p className="text-slate-500 text-xs uppercase tracking-wide">Confidence</p>
+                  <p className={`text-sm mt-0.5 font-medium ${result.confidence >= 0.7 ? "text-emerald-400" : result.confidence >= 0.5 ? "text-amber-400" : "text-red-400"}`}>
+                    {Math.round(result.confidence * 100)}%
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
