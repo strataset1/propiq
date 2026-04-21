@@ -33,12 +33,9 @@ export default async function ApiKeysPage({
     .eq("is_active", true)
     .order("created_at", { ascending: false });
 
-  // Read and immediately clear the newly created key cookie
+  // Read the newly created key cookie (expires after 60s naturally)
   const cookieStore = await cookies();
   const newKeyValue = cookieStore.get("new_api_key")?.value ?? null;
-  if (newKeyValue) {
-    cookieStore.delete("new_api_key");
-  }
 
   const params = await searchParams;
 
