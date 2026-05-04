@@ -137,18 +137,8 @@ async function processOne(docId: string): Promise<{ ok: true } | { ok: false; er
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   let responseText: string;
 
-  if (doc.extracted_text && doc.extracted_text.length > 200) {
-    // Text-based PDF — send as text
-    const message = await anthropic.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 1024,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: USER_PROMPT(doc.type, doc.extracted_text) }],
-    });
-    responseText = message.content[0].type === "text" ? message.content[0].text : "";
-
-  } else if (doc.storage_path) {
-    // Scanned PDF — download and send directly to Claude vision
+  if (doc.storage_path) {
+    // Always send the full PDF to Claude — handles both text-based and scanned
     const { data: fileData, error: dlError } = await supabase.storage
       .from("property-documents")
       .download(doc.storage_path);
@@ -160,7 +150,7 @@ async function processOne(docId: string): Promise<{ ok: true } | { ok: false; er
 
     const message = await anthropic.beta.messages.create({
       model: "claude-sonnet-4-6",
-      max_tokens: 1024,
+      max_tokens: 2048,
       system: SYSTEM_PROMPT,
       betas: ["pdfs-2024-09-25"],
       messages: [{
@@ -176,8 +166,18 @@ async function processOne(docId: string): Promise<{ ok: true } | { ok: false; er
     });
     responseText = message.content[0].type === "text" ? message.content[0].text : "";
 
+  } else if (doc.extracted_text) {
+    // Fallback: no PDF in storage, use extracted text
+    const message = await anthropic.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 1024,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: "user", content: USER_PROMPT(doc.type, doc.extracted_text) }],
+    });
+    responseText = message.content[0].type === "text" ? message.content[0].text : "";
+
   } else {
-    return { ok: false, error: "No text or PDF available" };
+    return { ok: false, error: "No PDF or extracted text available" };
   }
 
   try {
