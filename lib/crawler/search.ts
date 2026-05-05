@@ -8,10 +8,41 @@ const NOISE_DOMAINS = [
   "planning.nsw.gov.au",
   "vic.gov.au",
   "legislation.vic.gov.au",
+  "abs.gov.au",
+  "accc.gov.au",
+  "fairtrading.nsw.gov.au",
+  "consumer.vic.gov.au",
+  "slv.vic.gov.au",
+];
+
+// Filename patterns that indicate a generic/handbook document rather than a property-specific by-law
+const NOISE_FILENAME_PATTERNS = [
+  "handbook",
+  "guide",
+  "overview",
+  "factsheet",
+  "fact-sheet",
+  "fact_sheet",
+  "template",
+  "sample",
+  "example",
+  "community",
+  "communities",
+  "information",
+  "newsletter",
+  "annual-report",
+  "annual_report",
+  "policy",
+  "policies",
+  "brochure",
+  "presentation",
+  "slideshow",
 ];
 
 function isNoisyUrl(url: string): boolean {
-  return NOISE_DOMAINS.some((domain) => url.includes(domain));
+  if (NOISE_DOMAINS.some((domain) => url.includes(domain))) return true;
+  const filename = url.split("/").pop()?.toLowerCase() ?? "";
+  return NOISE_FILENAME_PATTERNS.some((pattern) => filename.includes(pattern));
 }
 
 function isPdfUrl(url: string): boolean {
@@ -24,7 +55,8 @@ export type SearchResult = {
 };
 
 export async function searchSuburbForPdfs(suburb: string): Promise<SearchResult[]> {
-  const query = `${suburb} strata by-laws report PDF`;
+  // More specific query — target actual registered by-law documents
+  const query = `"${suburb}" strata by-laws registered filetype:pdf`;
 
   const res = await fetch("https://api.tavily.com/search", {
     method: "POST",
