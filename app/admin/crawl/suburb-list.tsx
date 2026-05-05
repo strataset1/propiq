@@ -72,21 +72,27 @@ function SuburbRow({
       });
       clearTimeout(timeoutId);
 
-      if (!res.ok) {
+      let data: { ok?: boolean; docsFound?: number; searched?: number; error?: string } = {};
+      try {
+        data = await res.json();
+      } catch {
         setStatus("error");
-        setErrorMsg(`Server error ${res.status}`);
+        setErrorMsg(`Server returned non-JSON (status ${res.status}) — check Vercel logs`);
         return;
       }
 
-      const data = await res.json() as { ok: boolean; docsFound: number; searched: number };
-      setResult({ docsFound: data.docsFound, searched: data.searched });
-      setStatus("done");
-    } catch {
-      clearTimeout(timeoutId);
-      if (status !== "timeout") {
+      if (!res.ok) {
         setStatus("error");
-        setErrorMsg("Request failed — check your connection.");
+        setErrorMsg(data.error ?? `Server error ${res.status}`);
+        return;
       }
+
+      setResult({ docsFound: data.docsFound ?? 0, searched: data.searched ?? 0 });
+      setStatus("done");
+    } catch (err) {
+      clearTimeout(timeoutId);
+      setStatus("error");
+      setErrorMsg(err instanceof Error ? err.message : "Request failed — check your connection.");
     }
   }
 
@@ -137,6 +143,20 @@ function SuburbRow({
           </button>
         </div>
       </div>
+
+      {(status === "error" || status === "timeout") && (
+        <div className="border-t border-red-900/50 bg-red-950/30 px-4 py-2">
+          <p className="text-xs text-red-400">{errorMsg}</p>
+        </div>
+      )}
+
+      {status === "done" && result && (
+        <div className="border-t border-emerald-900/50 bg-emerald-950/20 px-4 py-2">
+          <p className="text-xs text-emerald-400">
+            Crawl complete — {result.searched} URLs searched, {result.docsFound} new doc{result.docsFound !== 1 ? "s" : ""} added to queue.
+          </p>
+        </div>
+      )}
 
       {open && (
         <div className="border-t border-slate-800 bg-slate-950 px-4 py-3 space-y-1.5">
