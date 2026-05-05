@@ -35,10 +35,12 @@ export async function searchSuburbForPdfs(suburb: string): Promise<SearchResult[
   // Use postcode if known — strata docs contain postcodes, not suburb names like "Sydney CBD NSW"
   const locationTerm = postcode ?? city;
 
-  // Run two targeted queries to maximise coverage
+  // Combine city + postcode so context is clear — "Sydney 2000" is unambiguous
+  const fullLocation = postcode ? `${city} ${postcode}` : city;
+
   const queries = [
-    `strata by-laws ${locationTerm} filetype:pdf`,
-    `consolidated by-laws ${locationTerm} strata plan pdf`,
+    `strata by-laws "${fullLocation}" filetype:pdf`,
+    `consolidated by-laws "${fullLocation}" strata plan pdf`,
   ];
 
   const seen = new Set<string>();
@@ -70,6 +72,6 @@ export async function searchSuburbForPdfs(suburb: string): Promise<SearchResult[
     }
   }
 
-  console.log(`[search] ${suburb} (${locationTerm}): ${results.length} PDFs from Tavily`);
+  console.log(`[search] ${suburb} (${fullLocation}): ${results.length} PDFs from Tavily`);
   return results.slice(0, 10);
 }
