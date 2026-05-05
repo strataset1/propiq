@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 type CrawlRecord = {
   suburb: string;
@@ -39,7 +40,7 @@ function ChevronIcon({ open }: { open: boolean }) {
 function SuburbRow({
   suburb,
   crawled,
-  docs,
+  docs: initialDocs,
 }: {
   suburb: string;
   crawled: CrawlRecord | undefined;
@@ -48,6 +49,7 @@ function SuburbRow({
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<SuburbState>("idle");
   const [result, setResult] = useState<{ docsFound: number; searched: number } | null>(null);
+  const [docs, setDocs] = useState<DocRecord[]>(initialDocs);
   const [errorMsg, setErrorMsg] = useState("");
 
   const isCrawled = !!crawled;
@@ -89,6 +91,16 @@ function SuburbRow({
 
       setResult({ docsFound: data.docsFound ?? 0, searched: data.searched ?? 0 });
       setStatus("done");
+      setOpen(true);
+
+      // Refresh doc list for this suburb
+      const supabase = createClient();
+      const { data: freshDocs } = await supabase
+        .from("documents")
+        .select("id, label, source_url, processed_at, crawl_suburb")
+        .eq("crawl_suburb", suburb)
+        .order("created_at", { ascending: false });
+      if (freshDocs) setDocs(freshDocs);
     } catch (err) {
       clearTimeout(timeoutId);
       setStatus("error");
