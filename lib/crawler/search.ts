@@ -31,53 +31,56 @@ export type SearchResult = {
 export async function searchSuburbForPdfs(suburb: string): Promise<SearchResult[]> {
   const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-  const response = await client.responses.create({
-    model: "gpt-4o",
-    tools: [{ type: "web_search_preview" }],
-    input: `Search the web for strata by-law PDF documents for properties in ${suburb}, Australia.
+  const completion = await client.chat.completions.create({
+    model: "gpt-4o-search-preview",
+    messages: [
+      {
+        role: "user",
+        content: `Search the web for strata by-law PDF documents for properties in ${suburb}, Australia.
 
-Look for:
-- Strata by-laws or consolidated by-laws for specific strata plans or buildings in ${suburb}
-- Documents from strata management companies (BCS Strata, Strata Plus, PICA, Strata Choice, Netstrata, etc.)
-- Building-specific websites with by-law documents
-- Property management portals with downloadable PDFs
+Look for direct .pdf links from:
+- Strata management companies (BCS Strata, PICA, Strata Plus, Netstrata, Strata Choice, Bright & Duggan)
+- Building or strata plan specific websites
+- Property management portals
 
-Search using queries like:
-- "${suburb} strata by-laws PDF"
-- "${suburb} consolidated by-laws filetype:pdf"
-- site:bcsstrata.com.au OR site:strataplus.com.au "${suburb}" bylaws
+Try searches like:
+- "${suburb}" strata by-laws filetype:pdf
+- "${suburb}" consolidated by-laws SP filetype:pdf
+- site:bcsstrata.com.au "${suburb}" by-laws
 
-Return a JSON array of all PDF URLs you find. Include any that look like genuine strata by-law documents even if you're not 100% certain. Format:
-[{"url": "https://...", "title": "..."}]
+Return ONLY a raw JSON array with no markdown, no explanation:
+[{"url":"https://...","title":"..."}]
 
-If you find no PDF URLs at all, return: []`,
+If none found, return: []`,
+      },
+    ],
   });
 
-  // Extract text from response
-  const text = response.output
-    .filter((block): block is Extract<typeof block, { type: "message" }> => block.type === "message")
-    .flatMap((block) => block.content)
-    .filter((c): c is Extract<typeof c, { type: "output_text" }> => c.type === "output_text")
-    .map((c) => c.text)
-    .join("");
+  const text = completion.choices[0]?.message?.content ?? "";
 
-  // Extract all PDF URLs mentioned anywhere in the response as fallback
-  const urlsFromText = [...text.matchAll(/https?:\/\/[^\s"')]+\.pdf/gi)]
-    .map((m) => ({ url: m[0], title: "" }));
+  // Extract PDF URLs directly from the response text as primary method
+  const urlMatches = [...text.matchAll(/https?:\/\/[^\s"')\]]+\.pdf/gi)]
+    .map((m) => ({ url: m[0].replace(/[,.]$/, ""), title: "" }));
 
-  // Try to parse the JSON array first
+  // Also try parsing a JSON array if present
   try {
     const match = text.match(/\[[\s\S]*?\]/);
     if (match) {
       const parsed = JSON.parse(match[0]) as { url: string; title: string }[];
       if (parsed.length > 0) {
-        return parsed.filter((r) => isPdfUrl(r.url) && !isNoisy(r.url));
+        const combined = [...parsed, ...urlMatches];
+        const seen = new Set<string>();
+        return combined
+          .filter((r) => isPdfUrl(r.url) && !isNoisy(r.url) && !seen.has(r.url) && seen.add(r.url))
+          .slice(0, 10);
       }
     }
   } catch {
-    // fall through to regex extraction
+    // fall through
   }
 
-  // Fallback: extract PDF URLs directly from the response text
-  return urlsFromText.filter((r) => isPdfUrl(r.url) && !isNoisy(r.url));
+  const seen = new Set<string>();
+  return urlMatches
+    .filter((r) => isPdfUrl(r.url) && !isNoisy(r.url) && !seen.has(r.url) && seen.add(r.url))
+    .slice(0, 10);
 }
