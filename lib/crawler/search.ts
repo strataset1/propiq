@@ -24,6 +24,17 @@ function isPdfUrl(url: string): boolean {
   return url.toLowerCase().endsWith(".pdf");
 }
 
+// Only accept PDFs whose filename clearly identifies them as a strata by-law document.
+// A generic filename like "report.pdf" or "document.pdf" tells us nothing.
+const BYLAW_FILENAME_SIGNALS = [
+  "by-law", "bylaw", "by_law", "bylaws", "by-laws", "by_laws",
+];
+
+function looksLikeBylaw(url: string): boolean {
+  const filename = decodeURIComponent(url.split("/").pop() ?? "").toLowerCase();
+  return BYLAW_FILENAME_SIGNALS.some((s) => filename.includes(s));
+}
+
 export type SearchResult = {
   url: string;
   title: string;
@@ -65,7 +76,7 @@ export async function searchSuburbForPdfs(suburb: string): Promise<SearchResult[
 
     const data = await res.json() as { results: { url: string; title: string }[] };
     for (const r of data.results ?? []) {
-      if (isPdfUrl(r.url) && !isNoisy(r.url) && !seen.has(r.url)) {
+      if (isPdfUrl(r.url) && looksLikeBylaw(r.url) && !isNoisy(r.url) && !seen.has(r.url)) {
         seen.add(r.url);
         results.push({ url: r.url, title: r.title });
       }
