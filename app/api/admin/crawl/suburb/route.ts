@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { searchSuburbForPdfs } from "@/lib/crawler/search";
-import { ingestPdfLight } from "@/lib/crawler/ingest";
+import { ingestPdfLight } from "@/lib/crawler/ingest-light";
 
 export const maxDuration = 60;
 
