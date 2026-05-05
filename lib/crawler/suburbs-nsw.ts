@@ -1,0 +1,75 @@
+export const NSW_SUBURBS: string[] = [
+  // Inner Sydney
+  "Sydney CBD NSW", "Haymarket NSW", "Pyrmont NSW", "Ultimo NSW", "Glebe NSW",
+  "Surry Hills NSW", "Darlinghurst NSW", "Potts Point NSW", "Elizabeth Bay NSW",
+  "Kings Cross NSW", "Rushcutters Bay NSW", "Edgecliff NSW", "Paddington NSW",
+  "Woollahra NSW", "Double Bay NSW", "Rose Bay NSW", "Vaucluse NSW",
+  "Watsons Bay NSW", "Bondi NSW", "Bondi Beach NSW", "Bondi Junction NSW",
+  "Tamarama NSW", "Bronte NSW", "Clovelly NSW", "Randwick NSW",
+  "Kensington NSW", "Kingsford NSW", "Coogee NSW", "Maroubra NSW",
+  "Malabar NSW", "Mascot NSW", "Botany NSW", "Waterloo NSW",
+  "Zetland NSW", "Rosebery NSW", "Alexandria NSW", "Beaconsfield NSW",
+  "Erskineville NSW", "Newtown NSW", "St Peters NSW", "Sydenham NSW",
+  "Marrickville NSW", "Dulwich Hill NSW", "Petersham NSW", "Summer Hill NSW",
+  "Annandale NSW", "Camperdown NSW", "Redfern NSW",
+  // Inner West
+  "Balmain NSW", "Rozelle NSW", "Leichhardt NSW", "Lilyfield NSW",
+  "Ashfield NSW", "Burwood NSW", "Croydon NSW", "Strathfield NSW",
+  "Homebush NSW", "Concord NSW", "Rhodes NSW", "Meadowbank NSW",
+  // North Sydney / Northern Suburbs
+  "North Sydney NSW", "Kirribilli NSW", "Milsons Point NSW",
+  "Lavender Bay NSW", "McMahons Point NSW", "Neutral Bay NSW",
+  "Cremorne NSW", "Mosman NSW", "Spit Junction NSW", "Balmoral NSW",
+  "Crows Nest NSW", "St Leonards NSW", "Artarmon NSW",
+  "Lane Cove NSW", "Longueville NSW", "Northwood NSW",
+  "Gladesville NSW", "Hunters Hill NSW", "Ryde NSW",
+  // Northern Beaches
+  "Manly NSW", "Fairlight NSW", "Balgowlah NSW", "Seaforth NSW",
+  "Clontarf NSW", "Mosman NSW", "Dee Why NSW", "Collaroy NSW",
+  "Narrabeen NSW", "Mona Vale NSW", "Newport NSW",
+  "Avalon Beach NSW", "Bilgola Beach NSW", "Whale Beach NSW",
+  "Palm Beach NSW", "Warriewood NSW", "Narraweena NSW",
+  "Curl Curl NSW", "Freshwater NSW", "Queenscliff NSW",
+  // Upper North Shore
+  "Chatswood NSW", "Roseville NSW", "Lindfield NSW", "Killara NSW",
+  "Gordon NSW", "Pymble NSW", "St Ives NSW", "Turramurra NSW",
+  "Wahroonga NSW", "Waitara NSW", "Hornsby NSW", "Beecroft NSW",
+  "Cheltenham NSW", "Epping NSW", "Eastwood NSW",
+  // Western Sydney
+  "Parramatta NSW", "Westmead NSW", "Granville NSW", "Harris Park NSW",
+  "Merrylands NSW", "Guildford NSW", "Fairfield NSW", "Liverpool NSW",
+  "Rydalmere NSW", "Ermington NSW", "Pendle Hill NSW", "Wentworthville NSW",
+  "Blacktown NSW", "Seven Hills NSW", "Toongabbie NSW", "Penrith NSW",
+  "Bankstown NSW", "Lakemba NSW", "Punchbowl NSW", "Greenacre NSW",
+  "Campsie NSW", "Belmore NSW", "Canterbury NSW",
+  // South Sydney
+  "Hurstville NSW", "Kogarah NSW", "Rockdale NSW", "Arncliffe NSW",
+  "Wolli Creek NSW", "Eastlakes NSW", "Kingsgrove NSW", "Beverly Hills NSW",
+  "Penshurst NSW", "Mortdale NSW", "Oatley NSW", "Bexley NSW",
+  "Peakhurst NSW", "Narwee NSW",
+  // Sutherland
+  "Cronulla NSW", "Caringbah NSW", "Miranda NSW", "Sutherland NSW",
+  "Kirrawee NSW", "Gymea NSW", "Engadine NSW", "Menai NSW",
+  "Loftus NSW", "Como NSW", "Jannali NSW",
+  // Newcastle / Hunter
+  "Newcastle NSW", "Newcastle West NSW", "Hamilton NSW",
+  "Mayfield NSW", "Broadmeadow NSW", "Charlestown NSW",
+  "Merewether NSW", "Bar Beach NSW", "Cooks Hill NSW",
+  "The Junction NSW", "Jesmond NSW", "Kotara NSW",
+  "Adamstown NSW", "New Lambton NSW", "Wallsend NSW",
+  "Maryville NSW", "Wickham NSW",
+  // Central Coast
+  "Gosford NSW", "Terrigal NSW", "Avoca Beach NSW", "Wamberal NSW",
+  "The Entrance NSW", "Long Jetty NSW", "Wyong NSW", "Tuggerah NSW",
+  "Erina NSW", "Green Point NSW", "Narara NSW", "Niagara Park NSW",
+  "Umina Beach NSW", "Woy Woy NSW", "Ettalong Beach NSW",
+  // Wollongong
+  "Wollongong NSW", "North Wollongong NSW", "Gwynneville NSW",
+  "Figtree NSW", "Fairy Meadow NSW", "Thirroul NSW",
+  "Austinmer NSW", "Bulli NSW", "Corrimal NSW",
+  "Dapto NSW", "Shellharbour NSW", "Oak Flats NSW",
+  "Kiama NSW", "Gerringong NSW",
+  // Blue Mountains
+  "Katoomba NSW", "Leura NSW", "Wentworth Falls NSW",
+  "Springwood NSW", "Blaxland NSW", "Glenbrook NSW",
+];

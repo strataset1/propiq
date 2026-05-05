@@ -33,6 +33,79 @@ export type IngestResult =
   | { ok: true; documentId: string; address: string }
   | { ok: false; reason: string };
 
+// Lightweight version for web-triggered crawls — skips pdf-parse (causes DOMMatrix on Vercel).
+// Documents are queued for Claude vision processing instead.
+export async function ingestPdfLight(
+  url: string,
+  suburb: string,
+  supabase: SupabaseClient
+): Promise<IngestResult> {
+  let buffer: Buffer;
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
+    if (!res.ok) return { ok: false, reason: `HTTP ${res.status}` };
+    const contentType = res.headers.get("content-type") ?? "";
+    if (!contentType.includes("pdf") && !url.toLowerCase().endsWith(".pdf")) {
+      return { ok: false, reason: "Not a PDF" };
+    }
+    buffer = Buffer.from(await res.arrayBuffer());
+  } catch {
+    return { ok: false, reason: "Download failed or timed out" };
+  }
+
+  const fileHash = sha256(buffer.toString("base64"));
+  const { data: existing } = await supabase
+    .from("documents")
+    .select("id")
+    .eq("file_hash", fileHash)
+    .single();
+  if (existing) return { ok: false, reason: "Duplicate" };
+
+  const addressRaw = extractAddressFromUrl(url) ?? suburb;
+  const addressNormalised = await normaliseAddress(addressRaw);
+
+  const { data: property, error: propError } = await supabase
+    .from("properties")
+    .upsert(
+      { address_raw: addressRaw, address_normalised: addressNormalised, status: "processing" },
+      { onConflict: "address_normalised" }
+    )
+    .select()
+    .single();
+
+  if (propError || !property) return { ok: false, reason: "Failed to upsert property" };
+
+  const filename = url.split("/").pop() ?? `${Date.now()}.pdf`;
+  const storagePath = `${property.id}/${Date.now()}-${filename}`;
+  const { error: uploadError } = await supabase.storage
+    .from("property-documents")
+    .upload(storagePath, buffer, { contentType: "application/pdf" });
+
+  if (uploadError) return { ok: false, reason: "Storage upload failed" };
+
+  const { data: doc, error: docError } = await supabase
+    .from("documents")
+    .insert({
+      property_id: property.id,
+      type: "strata",
+      label: `Strata By-Laws — ${suburb}`,
+      source_url: url,
+      storage_path: storagePath,
+      file_hash: fileHash,
+      crawl_suburb: suburb,
+      ingested_via: "crawler",
+    })
+    .select()
+    .single();
+
+  if (docError || !doc) return { ok: false, reason: "Failed to insert document" };
+
+  return { ok: true, documentId: doc.id, address: addressRaw };
+}
+
 export async function ingestPdfFromUrl(
   url: string,
   suburb: string,

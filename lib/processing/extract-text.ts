@@ -18,7 +18,7 @@ export async function extractText(pdfBuffer: Buffer): Promise<ExtractResult> {
   const parser = new PDFParse({ data: pdfBuffer });
   const parsed = await parser.getText();
   const text = parsed.text.trim();
-  const pageCount = parsed.totalPages;
+  const pageCount = parsed.total;
   const likelyScanned = isLikelyScanned(text, pageCount);
 
   return { text, pageCount, likelyScanned };

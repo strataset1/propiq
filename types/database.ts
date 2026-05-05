@@ -128,6 +128,7 @@ export type Database = {
       }
       documents: {
         Row: {
+          crawl_suburb: string | null
           created_at: string
           extracted_text: string | null
           file_hash: string | null
@@ -142,6 +143,7 @@ export type Database = {
           type: Database["public"]["Enums"]["document_type"]
         }
         Insert: {
+          crawl_suburb?: string | null
           created_at?: string
           extracted_text?: string | null
           file_hash?: string | null
@@ -156,6 +158,7 @@ export type Database = {
           type: Database["public"]["Enums"]["document_type"]
         }
         Update: {
+          crawl_suburb?: string | null
           created_at?: string
           extracted_text?: string | null
           file_hash?: string | null
@@ -319,10 +322,32 @@ export type Database = {
           },
         ]
       }
+      suburb_crawls: {
+        Row: {
+          docs_found: number
+          id: string
+          searched_at: string
+          suburb: string
+        }
+        Insert: {
+          docs_found?: number
+          id?: string
+          searched_at?: string
+          suburb: string
+        }
+        Update: {
+          docs_found?: number
+          id?: string
+          searched_at?: string
+          suburb?: string
+        }
+        Relationships: []
+      }
       strata_bylaws: {
         Row: {
           confidence: number | null
           created_at: string
+          document_date: string | null
           document_id: string
           exterior_renovations_detail: string | null
           exterior_renovations_legal: string | null
@@ -352,6 +377,7 @@ export type Database = {
         Insert: {
           confidence?: number | null
           created_at?: string
+          document_date?: string | null
           document_id: string
           exterior_renovations_detail?: string | null
           exterior_renovations_legal?: string | null
@@ -381,6 +407,7 @@ export type Database = {
         Update: {
           confidence?: number | null
           created_at?: string
+          document_date?: string | null
           document_id?: string
           exterior_renovations_detail?: string | null
           exterior_renovations_legal?: string | null

@@ -17,7 +17,7 @@ async function extractPdfText(file: File): Promise<{ text: string; pageCount: nu
   const parser = new PDFParse({ data: Buffer.from(buffer) });
   const result = await parser.getText();
   const text = result.text.trim();
-  const pageCount = result.totalPages ?? 1;
+  const pageCount = result.total ?? 1;
   const isScanned = text.length / pageCount < 50;
   return { text, pageCount, isScanned };
 }

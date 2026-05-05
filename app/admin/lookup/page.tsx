@@ -93,7 +93,7 @@ export default function LookupPage() {
 
     setResult({
       address_raw: property.address_raw,
-      address_normalised: property.address_normalised,
+      address_normalised: property.address_normalised ?? "",
       status: property.status,
       document_date: bylaws.document_date,
       confidence: bylaws.confidence,
