@@ -1,10 +1,10 @@
-import OpenAI from "openai";
 import { getSearchTerms } from "./postcodes";
 
 const NOISE_FILENAME_PATTERNS = [
-  "handbook", "guide", "overview", "factsheet", "fact-sheet", "fact_fact",
+  "handbook", "guide", "overview", "factsheet", "fact-sheet", "fact_sheet",
   "template", "sample", "example", "information", "newsletter",
   "annual-report", "annual_report", "brochure", "presentation", "slideshow",
+  "agenda", "notice", "meeting", "community", "communities",
 ];
 
 const NOISE_DOMAINS = [
@@ -30,49 +30,46 @@ export type SearchResult = {
 };
 
 export async function searchSuburbForPdfs(suburb: string): Promise<SearchResult[]> {
-  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   const { city, postcode } = getSearchTerms(suburb);
-  const locationTerm = postcode ? `${city} ${postcode}` : city;
 
-  const completion = await client.chat.completions.create({
-    model: "gpt-4o-search-preview",
-    messages: [
-      {
-        role: "user",
-        content: `Search for direct PDF links to registered strata by-laws for residential buildings in ${locationTerm} Australia. Look on strata management company websites like bcsstrata.com.au, netstrata.com.au, strataplus.com.au, stratachoice.com.au. Find actual .pdf file links for specific strata plans or buildings in ${locationTerm}.`,
-      },
-    ],
-  });
+  // Use postcode if known — strata docs contain postcodes, not suburb names like "Sydney CBD NSW"
+  const locationTerm = postcode ?? city;
 
-  const message = completion.choices[0]?.message;
-  const text = message?.content ?? "";
+  // Run two targeted queries to maximise coverage
+  const queries = [
+    `strata by-laws ${locationTerm} filetype:pdf`,
+    `consolidated by-laws ${locationTerm} strata plan pdf`,
+  ];
 
-  console.log(`[search] ${suburb} raw text:`, text.slice(0, 300));
-  console.log(`[search] ${suburb} annotations:`, JSON.stringify(message?.annotations?.slice(0, 5)));
-
-  const results: SearchResult[] = [];
   const seen = new Set<string>();
+  const results: SearchResult[] = [];
 
-  // Primary: extract PDF URLs from annotations (where gpt-4o-search-preview puts cited URLs)
-  for (const annotation of message?.annotations ?? []) {
-    if (annotation.type === "url_citation") {
-      const { url, title } = annotation.url_citation;
-      if (isPdfUrl(url) && !isNoisy(url) && !seen.has(url)) {
-        seen.add(url);
-        results.push({ url, title: title ?? "" });
+  for (const query of queries) {
+    const res = await fetch("https://api.tavily.com/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        api_key: process.env.TAVILY_API_KEY,
+        query,
+        search_depth: "basic",
+        max_results: 10,
+      }),
+    });
+
+    if (!res.ok) {
+      console.error(`[search] Tavily failed for "${query}": ${res.status}`);
+      continue;
+    }
+
+    const data = await res.json() as { results: { url: string; title: string }[] };
+    for (const r of data.results ?? []) {
+      if (isPdfUrl(r.url) && !isNoisy(r.url) && !seen.has(r.url)) {
+        seen.add(r.url);
+        results.push({ url: r.url, title: r.title });
       }
     }
   }
 
-  // Fallback: extract any PDF URLs from response text
-  for (const match of text.matchAll(/https?:\/\/[^\s"')\]]+\.pdf/gi)) {
-    const url = match[0].replace(/[,.\]"]+$/, "");
-    if (!isNoisy(url) && !seen.has(url)) {
-      seen.add(url);
-      results.push({ url, title: "" });
-    }
-  }
-
-  console.log(`[search] ${suburb} found ${results.length} PDF URLs`);
+  console.log(`[search] ${suburb} (${locationTerm}): ${results.length} PDFs from Tavily`);
   return results.slice(0, 10);
 }
