@@ -10,8 +10,8 @@ export async function POST(req: NextRequest) {
     const { suburb } = await req.json() as { suburb?: string };
     if (!suburb) return NextResponse.json({ error: "suburb required" }, { status: 400 });
 
-    if (!process.env.TAVILY_API_KEY) {
-      return NextResponse.json({ error: "TAVILY_API_KEY is not set on this server" }, { status: 500 });
+    if (!process.env.OPENAI_API_KEY) {
+      return NextResponse.json({ error: "OPENAI_API_KEY is not set on this server" }, { status: 500 });
     }
 
     const supabase = createServiceClient();
