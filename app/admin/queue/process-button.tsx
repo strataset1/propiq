@@ -11,7 +11,10 @@ export function ProcessButton({ processAction, label }: { processAction: () => P
     setMessage("");
     const result = await processAction();
     if (result.ok) {
-      setMessage(`Batch submitted — ${result.queued} document${result.queued === 1 ? "" : "s"} sent to Claude.`);
+      setMessage(
+        result.message ??
+        `Batch submitted — ${result.queued} document${result.queued === 1 ? "" : "s"} sent to Claude.`
+      );
       setState("done");
     } else {
       setMessage(result.error);
