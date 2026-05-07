@@ -47,6 +47,13 @@ async function computeHash(file: File): Promise<string> {
   return Array.from(new Uint8Array(hashBuffer)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`Timed out after ${ms / 1000}s (${label})`)), ms)),
+  ]);
+}
+
 async function extractPdfText(file: File): Promise<{ text: string; pageCount: number; isScanned: boolean }> {
   const buffer = await file.arrayBuffer();
   const parser = new PDFParse({ data: Buffer.from(buffer) });
@@ -127,14 +134,14 @@ export function BulkUploadForm({ prepareUpload, finalizeUpload }: BulkUploadForm
 
       try {
         // Step 1: check duplicate + get signed upload URL (metadata only, no file)
-        const prepared = await prepareUpload({
+        const prepared = await withTimeout(prepareUpload({
           filename: entry.file.name,
           type: entry.type,
           label: entry.label,
           address: entry.address,
           pageCount: entry.pageCount,
           fileHash: entry.fileHash,
-        });
+        }), 30000, "prepare");
 
         if (!prepared.ok) {
           update(entry.id, { status: "error", message: prepared.error });
@@ -147,11 +154,15 @@ export function BulkUploadForm({ prepareUpload, finalizeUpload }: BulkUploadForm
         }
 
         // Step 2: upload file directly from browser to Supabase (no server action, no size limits)
-        const { error: uploadError } = await supabase.storage
-          .from("property-documents")
-          .uploadToSignedUrl(prepared.storagePath, prepared.token, entry.file, {
-            contentType: "application/pdf",
-          });
+        const { error: uploadError } = await withTimeout(
+          supabase.storage
+            .from("property-documents")
+            .uploadToSignedUrl(prepared.storagePath, prepared.token, entry.file, {
+              contentType: "application/pdf",
+            }),
+          120000,
+          "storage upload"
+        );
 
         if (uploadError) {
           update(entry.id, { status: "error", message: `Storage upload failed: ${uploadError.message}` });
@@ -159,7 +170,7 @@ export function BulkUploadForm({ prepareUpload, finalizeUpload }: BulkUploadForm
         }
 
         // Step 3: save document record
-        const finalised = await finalizeUpload({
+        const finalised = await withTimeout(finalizeUpload({
           propertyId: prepared.propertyId,
           storagePath: prepared.storagePath,
           fileHash: entry.fileHash,
@@ -167,7 +178,7 @@ export function BulkUploadForm({ prepareUpload, finalizeUpload }: BulkUploadForm
           label: entry.label,
           extractedText: entry.extractedText,
           pageCount: entry.pageCount,
-        });
+        }), 30000, "finalize");
 
         if (!finalised.ok) {
           update(entry.id, { status: "error", message: finalised.error });
