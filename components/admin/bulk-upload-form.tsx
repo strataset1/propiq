@@ -93,11 +93,6 @@ export function BulkUploadForm({ uploadAction }: BulkUploadFormProps) {
     setUploading(true);
 
     for (const entry of pending) {
-      if (!entry.address.trim()) {
-        update(entry.id, { status: "error", message: "Address is required" });
-        continue;
-      }
-
       flushSync(() => update(entry.id, { status: "uploading", message: "" }));
 
       const formData = new FormData();
@@ -183,7 +178,7 @@ export function BulkUploadForm({ uploadAction }: BulkUploadFormProps) {
                     <input
                       value={entry.address}
                       onChange={(e) => update(entry.id, { address: e.target.value })}
-                      placeholder="Property address"
+                      placeholder="Property address (optional)"
                       className="w-full bg-slate-800 border border-slate-700 text-white text-sm rounded-lg px-3 py-2 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
                     />
                   </div>
