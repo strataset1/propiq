@@ -18,22 +18,38 @@ export async function POST(req: NextRequest) {
   const extractedText = formData.get("extracted_text") as string | null;
   const pageCount = formData.get("page_count") ? parseInt(formData.get("page_count") as string) : null;
 
-  if (!file || !addressRaw || !docType || !label) {
-    return NextResponse.json({ error: "Missing required fields: file, address, type, label" }, { status: 400 });
+  if (!file || !docType || !label) {
+    return NextResponse.json({ error: "Missing required fields: file, type, label" }, { status: 400 });
   }
 
   const supabase = createServiceClient();
-  const addressNormalised = await normaliseAddress(addressRaw);
 
-  // Upsert property
-  const { data: property, error: propError } = await supabase
-    .from("properties")
-    .upsert(
-      { address_raw: addressRaw, address_normalised: addressNormalised, status: "processing" },
-      { onConflict: "address_normalised" }
-    )
-    .select()
-    .single();
+  let property: { id: string } | null = null;
+  let propError = null;
+
+  if (addressRaw?.trim()) {
+    // Address provided — normalise and upsert by address
+    const addressNormalised = await normaliseAddress(addressRaw);
+    const { data, error } = await supabase
+      .from("properties")
+      .upsert(
+        { address_raw: addressRaw, address_normalised: addressNormalised, status: "processing" },
+        { onConflict: "address_normalised" }
+      )
+      .select()
+      .single();
+    property = data;
+    propError = error;
+  } else {
+    // No address — insert a new property to be filled in during processing
+    const { data, error } = await supabase
+      .from("properties")
+      .insert({ address_raw: label, address_normalised: null, status: "processing" })
+      .select()
+      .single();
+    property = data;
+    propError = error;
+  }
 
   if (propError || !property) {
     return NextResponse.json({ error: "Failed to upsert property" }, { status: 500 });
@@ -52,7 +68,7 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (existing) {
-    return NextResponse.json({ message: "Document already exists", document_id: existing.id });
+    return NextResponse.json({ ok: true, duplicate: true, documentId: existing.id });
   }
 
   // Upload to Storage
@@ -85,5 +101,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Failed to insert document record" }, { status: 500 });
   }
 
-  return NextResponse.json({ document_id: doc.id, property_id: property.id });
+  return NextResponse.json({ ok: true, documentId: doc.id, propertyId: property.id });
 }
