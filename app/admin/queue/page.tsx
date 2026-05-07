@@ -117,7 +117,12 @@ async function processAllVision(): Promise<{ ok: true; queued: number; batchId: 
 
   if (requests.length === 0) return { ok: false, error: "Could not generate signed URLs" };
 
-  const batch = await anthropic.beta.messages.batches.create({ requests: requests as any });
+  let batch;
+  try {
+    batch = await anthropic.beta.messages.batches.create({ requests: requests as any });
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Anthropic API error" };
+  }
 
   await supabase.from("processing_batches").insert({
     batch_id: batch.id,
@@ -159,7 +164,11 @@ async function checkBatches(): Promise<{ ok: true; message: string } | { ok: fal
         await supabase.from("processing_batches").update({ status: "expired" }).eq("id", batch.id);
         expired++;
       }
-    } catch {
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "unknown error";
+      if (msg.toLowerCase().includes("credit") || msg.toLowerCase().includes("billing")) {
+        return { ok: false, error: msg };
+      }
       await supabase.from("processing_batches").update({ status: "expired" }).eq("id", batch.id);
       expired++;
     }
@@ -236,47 +245,49 @@ async function processOne(docId: string): Promise<{ ok: true } | { ok: false; er
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   let responseText: string;
 
-  if (doc.storage_path) {
-    // Always send the full PDF to Claude — handles both text-based and scanned
-    const { data: fileData, error: dlError } = await supabase.storage
-      .from("property-documents")
-      .download(doc.storage_path);
+  try {
+    if (doc.storage_path) {
+      const { data: fileData, error: dlError } = await supabase.storage
+        .from("property-documents")
+        .download(doc.storage_path);
 
-    if (dlError || !fileData) return { ok: false, error: "Could not download PDF from storage" };
+      if (dlError || !fileData) return { ok: false, error: "Could not download PDF from storage" };
 
-    const buffer = Buffer.from(await fileData.arrayBuffer());
-    const base64 = buffer.toString("base64");
+      const buffer = Buffer.from(await fileData.arrayBuffer());
+      const base64 = buffer.toString("base64");
 
-    const message = await anthropic.beta.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 2048,
-      system: SYSTEM_PROMPT,
-      betas: ["pdfs-2024-09-25"],
-      messages: [{
-        role: "user",
-        content: [
-          {
-            type: "document",
-            source: { type: "base64", media_type: "application/pdf", data: base64 },
-          },
-          { type: "text", text: USER_PROMPT(doc.type) },
-        ],
-      }],
-    });
-    responseText = message.content[0].type === "text" ? message.content[0].text : "";
+      const message = await anthropic.beta.messages.create({
+        model: "claude-sonnet-4-6",
+        max_tokens: 2048,
+        system: SYSTEM_PROMPT,
+        betas: ["pdfs-2024-09-25"],
+        messages: [{
+          role: "user",
+          content: [
+            {
+              type: "document",
+              source: { type: "base64", media_type: "application/pdf", data: base64 },
+            },
+            { type: "text", text: USER_PROMPT(doc.type) },
+          ],
+        }],
+      });
+      responseText = message.content[0].type === "text" ? message.content[0].text : "";
 
-  } else if (doc.extracted_text) {
-    // Fallback: no PDF in storage, use extracted text
-    const message = await anthropic.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 1024,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: USER_PROMPT(doc.type, doc.extracted_text) }],
-    });
-    responseText = message.content[0].type === "text" ? message.content[0].text : "";
+    } else if (doc.extracted_text) {
+      const message = await anthropic.messages.create({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1024,
+        system: SYSTEM_PROMPT,
+        messages: [{ role: "user", content: USER_PROMPT(doc.type, doc.extracted_text) }],
+      });
+      responseText = message.content[0].type === "text" ? message.content[0].text : "";
 
-  } else {
-    return { ok: false, error: "No PDF or extracted text available" };
+    } else {
+      return { ok: false, error: "No PDF or extracted text available" };
+    }
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Anthropic API error" };
   }
 
   try {
