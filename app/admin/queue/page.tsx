@@ -76,6 +76,49 @@ async function saveExtraction(docId: string, propertyId: string, text: string) {
   }
 }
 
+async function checkBatches(): Promise<{ ok: true; message: string } | { ok: false; error: string }> {
+  "use server";
+
+  const supabase = createServiceClient();
+  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+  const { data: batches } = await supabase
+    .from("processing_batches")
+    .select("*")
+    .eq("status", "in_progress");
+
+  if (!batches || batches.length === 0) return { ok: false, error: "No in-progress batches" };
+
+  let processed = 0;
+  let expired = 0;
+  let failed = 0;
+
+  for (const batch of batches) {
+    try {
+      const apiBatch = await anthropic.messages.batches.retrieve(batch.batch_id);
+
+      if (apiBatch.processing_status === "ended") {
+        const { pollAndWriteResults } = await import("@/lib/processing/batch");
+        const result = await pollAndWriteResults(batch.batch_id, supabase);
+        processed += result.processed;
+        failed += result.failed;
+        await supabase.from("processing_batches").update({ status: "complete" }).eq("id", batch.id);
+      } else if (apiBatch.processing_status === "canceling" || (apiBatch as any).expired_at) {
+        await supabase.from("processing_batches").update({ status: "expired" }).eq("id", batch.id);
+        expired++;
+      }
+    } catch {
+      await supabase.from("processing_batches").update({ status: "expired" }).eq("id", batch.id);
+      expired++;
+    }
+  }
+
+  return {
+    ok: true,
+    message: `Done — ${processed} docs written, ${failed} failed, ${expired} batches expired`,
+  };
+}
+
 async function processQueue(): Promise<{ ok: true; queued: number; batchId: string } | { ok: false; error: string; queued?: number }> {
   "use server";
 
@@ -220,7 +263,12 @@ export default async function AdminQueuePage() {
 
       {batches && batches.length > 0 && (
         <div className="space-y-3">
-          <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wide">Claude Batches</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wide">Claude Batches</h2>
+            {batches.some((b) => b.status === "in_progress") && (
+              <ProcessButton processAction={checkBatches} label="Check Batches" />
+            )}
+          </div>
           {batches.map((batch) => (
             <div key={batch.id} className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-center justify-between">
               <div>

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-export function ProcessButton({ processAction }: { processAction: () => Promise<{ ok: true; queued: number; batchId: string } | { ok: false; error: string; queued?: number }> }) {
+export function ProcessButton({ processAction, label }: { processAction: () => Promise<any>; label?: string }) {
   const [state, setState] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [message, setMessage] = useState("");
 
@@ -26,7 +26,7 @@ export function ProcessButton({ processAction }: { processAction: () => Promise<
         disabled={state === "loading"}
         className="bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-semibold text-sm px-4 py-2 rounded-lg transition-colors"
       >
-        {state === "loading" ? "Submitting to Claude…" : "Process Queue"}
+        {state === "loading" ? "Working…" : (label ?? "Process Queue")}
       </button>
       {message && (
         <p className={`text-xs font-mono ${state === "error" ? "text-red-400" : "text-emerald-400"}`}>
