@@ -37,6 +37,44 @@ function ChevronIcon({ open }: { open: boolean }) {
   );
 }
 
+function DocRow({ doc, onDelete }: { doc: DocRecord; onDelete: (id: string) => void }) {
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDelete(e: React.MouseEvent) {
+    e.stopPropagation();
+    setDeleting(true);
+    const supabase = createClient();
+    await supabase.from("documents").delete().eq("id", doc.id);
+    onDelete(doc.id);
+  }
+
+  return (
+    <div className="flex items-center justify-between gap-4 group">
+      <div className="min-w-0">
+        <p className="text-xs text-slate-300 truncate">{doc.label}</p>
+        {doc.source_url && (
+          <p className="text-xs text-slate-600 truncate">{doc.source_url}</p>
+        )}
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        <span className={`text-xs font-mono ${doc.processed_at ? "text-emerald-400" : "text-amber-400"}`}>
+          {doc.processed_at ? "processed" : "queued"}
+        </span>
+        <button
+          onClick={handleDelete}
+          disabled={deleting}
+          className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-600 hover:text-red-400 disabled:opacity-30"
+          title="Remove document"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function SuburbRow({
   suburb,
   crawled,
@@ -176,17 +214,11 @@ function SuburbRow({
             <p className="text-slate-600 text-xs">No documents scraped yet.</p>
           )}
           {docs.map((doc) => (
-            <div key={doc.id} className="flex items-center justify-between gap-4">
-              <div className="min-w-0">
-                <p className="text-xs text-slate-300 truncate">{doc.label}</p>
-                {doc.source_url && (
-                  <p className="text-xs text-slate-600 truncate">{doc.source_url}</p>
-                )}
-              </div>
-              <span className={`text-xs shrink-0 font-mono ${doc.processed_at ? "text-emerald-400" : "text-amber-400"}`}>
-                {doc.processed_at ? "processed" : "queued"}
-              </span>
-            </div>
+            <DocRow
+              key={doc.id}
+              doc={doc}
+              onDelete={(id) => setDocs((prev) => prev.filter((d) => d.id !== id))}
+            />
           ))}
         </div>
       )}
