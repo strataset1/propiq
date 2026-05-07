@@ -195,7 +195,12 @@ async function processQueue(): Promise<{ ok: true; queued: number; batchId: stri
   if (error) return { ok: false, error: "Failed to fetch documents" };
   if (!docs || docs.length === 0) return { ok: false, error: "No documents with extracted text in queue" };
 
-  const batchId = await createBatch(docs);
+  let batchId: string;
+  try {
+    batchId = await createBatch(docs);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Anthropic API error" };
+  }
 
   await supabase.from("processing_batches").insert({
     batch_id: batchId,
