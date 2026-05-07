@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { STATE_LAWS, detectState, type StateLawEntry } from "@/lib/state-laws";
 
 type ByLawAttribute = {
   value: string | null;
@@ -38,7 +39,38 @@ const VALUE_COLOURS: Record<string, string> = {
   maybe: "text-amber-400",
 };
 
-function AttributeCard({ label, attr }: { label: string; attr: ByLawAttribute }) {
+function StateLawPanel({ law }: { law: StateLawEntry }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className={`rounded-lg border text-xs ${law.overridesHardNo ? "border-amber-700/60 bg-amber-950/30" : "border-slate-700 bg-slate-800/50"}`}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center gap-2 px-3 py-2 text-left"
+      >
+        <svg className="w-3.5 h-3.5 shrink-0 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20A10 10 0 0012 2z" />
+        </svg>
+        <span className={`flex-1 font-medium ${law.overridesHardNo ? "text-amber-300" : "text-slate-300"}`}>
+          {law.takeaway}
+        </span>
+        <svg
+          className={`w-3 h-3 text-slate-500 transition-transform shrink-0 ${open ? "rotate-180" : ""}`}
+          fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {open && (
+        <div className="px-3 pb-3 pt-0 border-t border-slate-700/50">
+          <pre className="whitespace-pre-wrap text-slate-400 leading-relaxed font-sans mt-2">{law.detail}</pre>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AttributeCard({ label, attr, stateLaw }: { label: string; attr: ByLawAttribute; stateLaw?: StateLawEntry }) {
   const colour = VALUE_COLOURS[attr.value ?? ""] ?? "text-slate-400";
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2">
@@ -52,6 +84,7 @@ function AttributeCard({ label, attr }: { label: string; attr: ByLawAttribute })
           {attr.legal}
         </p>
       )}
+      {stateLaw && <StateLawPanel law={stateLaw} />}
     </div>
   );
 }
@@ -66,7 +99,6 @@ export default function LookupPage() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  // Fetch suggestions as user types
   useEffect(() => {
     if (address.trim().length < 2) {
       setSuggestions([]);
@@ -87,7 +119,6 @@ export default function LookupPage() {
     }, 250);
   }, [address]);
 
-  // Close suggestions on outside click
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
@@ -164,6 +195,9 @@ export default function LookupPage() {
     setLoading(false);
   }
 
+  const detectedState = result ? detectState(result.address_normalised || result.address_raw) : null;
+  const stateLaws = detectedState ? (STATE_LAWS[detectedState] ?? {}) : {};
+
   return (
     <div className="space-y-6">
       <div>
@@ -219,9 +253,16 @@ export default function LookupPage() {
                 <p className="text-white font-semibold text-base">{result.address_raw}</p>
                 <p className="text-slate-500 text-xs mt-0.5 font-mono">{toTitleCase(result.address_normalised)}</p>
               </div>
-              <span className="text-xs px-2 py-1 rounded font-mono shrink-0 bg-emerald-950 text-emerald-400">
-                processed
-              </span>
+              <div className="flex items-center gap-2 shrink-0">
+                {detectedState && (
+                  <span className="text-xs px-2 py-1 rounded font-mono bg-slate-800 text-slate-400 uppercase">
+                    {detectedState}
+                  </span>
+                )}
+                <span className="text-xs px-2 py-1 rounded font-mono bg-emerald-950 text-emerald-400">
+                  processed
+                </span>
+              </div>
             </div>
             <div className="flex items-center gap-4 border-t border-slate-800 pt-3">
               {result.document_date ? (
@@ -247,10 +288,10 @@ export default function LookupPage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <AttributeCard label="Short-term rental" attr={result.short_term_rental} />
-            <AttributeCard label="Pets allowed" attr={result.pets_allowed} />
-            <AttributeCard label="Interior renovations" attr={result.interior_renovations} />
-            <AttributeCard label="Exterior renovations" attr={result.exterior_renovations} />
+            <AttributeCard label="Short-term rental" attr={result.short_term_rental} stateLaw={stateLaws.short_term_rental} />
+            <AttributeCard label="Pets allowed" attr={result.pets_allowed} stateLaw={stateLaws.pets_allowed} />
+            <AttributeCard label="Interior renovations" attr={result.interior_renovations} stateLaw={stateLaws.interior_renovations} />
+            <AttributeCard label="Exterior renovations" attr={result.exterior_renovations} stateLaw={stateLaws.exterior_renovations} />
           </div>
 
           {result.processed_at && (
