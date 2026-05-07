@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { normaliseAddress } from "@/lib/utils/address";
 
 const MODEL = "claude-sonnet-4-6";
 
@@ -16,6 +17,7 @@ type AttributeResult = {
 };
 
 type ParsedExtraction = {
+  address: string | null;
   short_term_rental: AttributeResult;
   pets_allowed: AttributeResult;
   interior_renovations: AttributeResult;
@@ -27,7 +29,9 @@ const SYSTEM_PROMPT = `You are a property document analyst specialising in Austr
 Extract the following attributes from the document. For each attribute respond with:
 - value: "yes", "no", or "maybe"
 - detail: brief plain-English note (1-2 sentences, or null if not mentioned)
-- legal_summary: the exact by-law clause or legal language verbatim, or null if not present`;
+- legal_summary: the exact by-law clause or legal language verbatim, or null if not present
+
+Also extract the full property address if present in the document (e.g. from the title page, header, or strata plan reference). Return it as a complete street address including suburb and state if available. Return null if not found.`;
 
 function buildPrompt(doc: DocInput): string {
   return `Document type: ${doc.type}
@@ -36,6 +40,7 @@ Extract these attributes and return ONLY a JSON code block with no other text:
 
 \`\`\`json
 {
+  "address": "full street address including suburb and state, or null",
   "short_term_rental": { "value": "yes|no|maybe", "detail": "...", "legal_summary": "..." },
   "pets_allowed": { "value": "yes|no|maybe", "detail": "...", "legal_summary": "..." },
   "interior_renovations": { "value": "yes|no|maybe", "detail": "...", "legal_summary": "..." },
@@ -111,6 +116,24 @@ export async function pollAndWriteResults(
       .single();
 
     if (!doc) { failed++; continue; }
+
+    // Update property address if Claude extracted one
+    if (extraction.address) {
+      const { data: property } = await supabase
+        .from("properties")
+        .select("address_normalised")
+        .eq("id", doc.property_id)
+        .single();
+
+      // Only update if address is missing or was set from filename (not a real address)
+      if (!property?.address_normalised) {
+        const normalised = await normaliseAddress(extraction.address);
+        await supabase
+          .from("properties")
+          .update({ address_raw: extraction.address, address_normalised: normalised, status: "ready" })
+          .eq("id", doc.property_id);
+      }
+    }
 
     await supabase.from("strata_bylaws").upsert({
       document_id: docId,
