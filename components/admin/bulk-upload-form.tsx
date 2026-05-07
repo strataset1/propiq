@@ -3,12 +3,14 @@
 import { useState, useRef } from "react";
 import { flushSync } from "react-dom";
 import { PDFParse } from "pdf-parse";
+import { createClient } from "@/lib/supabase/client";
 
 const DOC_TYPES = ["strata", "building_inspection", "contract", "lease", "council", "other"];
 
 type FileEntry = {
   id: string;
   file: File;
+  fileHash: string | null;
   address: string;
   type: string;
   label: string;
@@ -19,14 +21,31 @@ type FileEntry = {
   isScanned: boolean;
 };
 
-type UploadResult =
-  | { ok: true; documentId: string }
+type PrepareResult =
+  | { ok: true; signedUrl: string; token: string; storagePath: string; propertyId: string }
   | { ok: true; duplicate: true; documentId: string }
   | { ok: false; error: string };
 
+type FinalizeResult =
+  | { ok: true; documentId: string }
+  | { ok: false; error: string };
+
 type BulkUploadFormProps = {
-  uploadAction: (formData: FormData) => Promise<UploadResult>;
+  prepareUpload: (input: {
+    filename: string; type: string; label: string; address: string;
+    pageCount: number | null; fileHash: string;
+  }) => Promise<PrepareResult>;
+  finalizeUpload: (input: {
+    propertyId: string; storagePath: string; fileHash: string; type: string;
+    label: string; extractedText: string | null; pageCount: number | null;
+  }) => Promise<FinalizeResult>;
 };
+
+async function computeHash(file: File): Promise<string> {
+  const buffer = await file.arrayBuffer();
+  const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
+  return Array.from(new Uint8Array(hashBuffer)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
 
 async function extractPdfText(file: File): Promise<{ text: string; pageCount: number; isScanned: boolean }> {
   const buffer = await file.arrayBuffer();
@@ -38,7 +57,7 @@ async function extractPdfText(file: File): Promise<{ text: string; pageCount: nu
   return { text, pageCount, isScanned };
 }
 
-export function BulkUploadForm({ uploadAction }: BulkUploadFormProps) {
+export function BulkUploadForm({ prepareUpload, finalizeUpload }: BulkUploadFormProps) {
   const [entries, setEntries] = useState<FileEntry[]>([]);
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -58,6 +77,7 @@ export function BulkUploadForm({ uploadAction }: BulkUploadFormProps) {
     const newEntries: FileEntry[] = files.map((file) => ({
       id: crypto.randomUUID(),
       file,
+      fileHash: null,
       address: "",
       type: "strata",
       label: file.name.replace(/\.pdf$/i, ""),
@@ -70,18 +90,22 @@ export function BulkUploadForm({ uploadAction }: BulkUploadFormProps) {
 
     setEntries((prev) => [...prev, ...newEntries]);
 
-    // Extract text for each file in the browser
     for (const entry of newEntries) {
       try {
-        const { text, pageCount, isScanned } = await extractPdfText(entry.file);
+        const [{ text, pageCount, isScanned }, fileHash] = await Promise.all([
+          extractPdfText(entry.file),
+          computeHash(entry.file),
+        ]);
         update(entry.id, {
           status: "pending",
           extractedText: isScanned ? null : text,
           pageCount,
           isScanned,
+          fileHash,
         });
       } catch {
-        update(entry.id, { status: "pending", extractedText: null, pageCount: null, isScanned: true });
+        const fileHash = await computeHash(entry.file).catch(() => null);
+        update(entry.id, { status: "pending", extractedText: null, pageCount: null, isScanned: true, fileHash });
       }
     }
   }
@@ -91,26 +115,67 @@ export function BulkUploadForm({ uploadAction }: BulkUploadFormProps) {
     if (pending.length === 0) return;
 
     setUploading(true);
+    const supabase = createClient();
 
     for (const entry of pending) {
+      if (!entry.fileHash) {
+        update(entry.id, { status: "error", message: "Could not hash file" });
+        continue;
+      }
+
       flushSync(() => update(entry.id, { status: "uploading", message: "" }));
 
-      const formData = new FormData();
-      formData.append("file", entry.file);
-      formData.append("address", entry.address);
-      formData.append("type", entry.type);
-      formData.append("label", entry.label);
-      if (entry.extractedText) formData.append("extracted_text", entry.extractedText);
-      if (entry.pageCount) formData.append("page_count", String(entry.pageCount));
+      try {
+        // Step 1: check duplicate + get signed upload URL (metadata only, no file)
+        const prepared = await prepareUpload({
+          filename: entry.file.name,
+          type: entry.type,
+          label: entry.label,
+          address: entry.address,
+          pageCount: entry.pageCount,
+          fileHash: entry.fileHash,
+        });
 
-      const result = await uploadAction(formData);
+        if (!prepared.ok) {
+          update(entry.id, { status: "error", message: prepared.error });
+          continue;
+        }
 
-      if (!result.ok) {
-        update(entry.id, { status: "error", message: result.error });
-      } else if ("duplicate" in result && result.duplicate) {
-        update(entry.id, { status: "duplicate", message: "Already exists — skipped" });
-      } else {
-        update(entry.id, { status: "done", message: "Uploaded" });
+        if ("duplicate" in prepared && prepared.duplicate) {
+          update(entry.id, { status: "duplicate", message: "Already exists — skipped" });
+          continue;
+        }
+
+        // Step 2: upload file directly from browser to Supabase (no server action, no size limits)
+        const { error: uploadError } = await supabase.storage
+          .from("property-documents")
+          .uploadToSignedUrl(prepared.storagePath, prepared.token, entry.file, {
+            contentType: "application/pdf",
+          });
+
+        if (uploadError) {
+          update(entry.id, { status: "error", message: `Storage upload failed: ${uploadError.message}` });
+          continue;
+        }
+
+        // Step 3: save document record
+        const finalised = await finalizeUpload({
+          propertyId: prepared.propertyId,
+          storagePath: prepared.storagePath,
+          fileHash: entry.fileHash,
+          type: entry.type,
+          label: entry.label,
+          extractedText: entry.extractedText,
+          pageCount: entry.pageCount,
+        });
+
+        if (!finalised.ok) {
+          update(entry.id, { status: "error", message: finalised.error });
+        } else {
+          update(entry.id, { status: "done", message: "Uploaded" });
+        }
+      } catch (err) {
+        update(entry.id, { status: "error", message: err instanceof Error ? err.message : "Unexpected error" });
       }
     }
 
@@ -236,7 +301,6 @@ export function BulkUploadForm({ uploadAction }: BulkUploadFormProps) {
           ))}
         </div>
       )}
-
     </div>
   );
 }

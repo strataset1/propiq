@@ -1,37 +1,45 @@
+export const dynamic = "force-dynamic";
+
 import { BulkUploadForm } from "@/components/admin/bulk-upload-form";
 
-async function uploadDocument(formData: FormData): Promise<
-  | { ok: true; documentId: string }
+// Step 1: check duplicate + create property + return signed upload URL
+async function prepareUpload(input: {
+  filename: string;
+  type: string;
+  label: string;
+  address: string;
+  pageCount: number | null;
+  fileHash: string;
+}): Promise<
+  | { ok: true; signedUrl: string; token: string; storagePath: string; propertyId: string }
   | { ok: true; duplicate: true; documentId: string }
   | { ok: false; error: string }
 > {
   "use server";
 
   const { createServiceClient } = await import("@/lib/supabase/server");
-  const { sha256 } = await import("@/lib/utils/hash");
   const { normaliseAddress } = await import("@/lib/utils/address");
-
-  const file = formData.get("file") as File | null;
-  const addressRaw = (formData.get("address") as string | null)?.trim() || null;
-  const type = formData.get("type") as string | null;
-  const label = formData.get("label") as string | null;
-  const extractedText = formData.get("extracted_text") as string | null;
-  const pageCount = formData.get("page_count") ? parseInt(formData.get("page_count") as string) : null;
-
-  if (!file || !type || !label) {
-    return { ok: false, error: "Missing required fields" };
-  }
 
   const supabase = createServiceClient();
 
+  // Check duplicate
+  const { data: existing } = await supabase
+    .from("documents")
+    .select("id")
+    .eq("file_hash", input.fileHash)
+    .maybeSingle();
+
+  if (existing) return { ok: true, duplicate: true, documentId: existing.id };
+
+  // Create/upsert property
   let property: { id: string } | null = null;
 
-  if (addressRaw) {
-    const addressNormalised = await normaliseAddress(addressRaw);
+  if (input.address?.trim()) {
+    const addressNormalised = await normaliseAddress(input.address.trim());
     const { data, error } = await supabase
       .from("properties")
       .upsert(
-        { address_raw: addressRaw, address_normalised: addressNormalised, status: "processing" },
+        { address_raw: input.address.trim(), address_normalised: addressNormalised, status: "processing" },
         { onConflict: "address_normalised" }
       )
       .select()
@@ -41,48 +49,61 @@ async function uploadDocument(formData: FormData): Promise<
   } else {
     const { data, error } = await supabase
       .from("properties")
-      .insert({ address_raw: label, address_normalised: null, status: "processing" })
+      .insert({ address_raw: input.label, address_normalised: null, status: "processing" })
       .select()
       .single();
     if (error || !data) return { ok: false, error: "Failed to create property" };
     property = data;
   }
 
-  const bytes = await file.arrayBuffer();
-  const buffer = Buffer.from(bytes);
-  const fileHash = sha256(buffer.toString("base64"));
-
-  const { data: existing } = await supabase
-    .from("documents")
-    .select("id")
-    .eq("file_hash", fileHash)
-    .single();
-
-  if (existing) return { ok: true, duplicate: true, documentId: existing.id };
-
-  const storagePath = `${property.id}/${Date.now()}-${file.name}`;
-  const { error: uploadError } = await supabase.storage
+  // Generate signed upload URL (browser will upload directly to Supabase)
+  const storagePath = `${property.id}/${Date.now()}-${input.filename}`;
+  const { data: signed, error: signedError } = await supabase.storage
     .from("property-documents")
-    .upload(storagePath, buffer, { contentType: "application/pdf" });
+    .createSignedUploadUrl(storagePath);
 
-  if (uploadError) return { ok: false, error: "Storage upload failed" };
+  if (signedError || !signed) return { ok: false, error: "Failed to create upload URL" };
 
-  const { data: doc, error: docError } = await supabase
+  return {
+    ok: true,
+    signedUrl: signed.signedUrl,
+    token: signed.token,
+    storagePath,
+    propertyId: property.id,
+  };
+}
+
+// Step 2: save document record after browser has uploaded the file
+async function finalizeUpload(input: {
+  propertyId: string;
+  storagePath: string;
+  fileHash: string;
+  type: string;
+  label: string;
+  extractedText: string | null;
+  pageCount: number | null;
+}): Promise<{ ok: true; documentId: string } | { ok: false; error: string }> {
+  "use server";
+
+  const { createServiceClient } = await import("@/lib/supabase/server");
+  const supabase = createServiceClient();
+
+  const { data: doc, error } = await supabase
     .from("documents")
     .insert({
-      property_id: property.id,
-      type: type as "strata" | "building_inspection" | "contract" | "lease" | "council" | "other",
-      label,
-      storage_path: storagePath,
-      file_hash: fileHash,
-      extracted_text: extractedText ?? null,
-      page_count: pageCount ?? null,
+      property_id: input.propertyId,
+      type: input.type as "strata" | "building_inspection" | "contract" | "lease" | "council" | "other",
+      label: input.label,
+      storage_path: input.storagePath,
+      file_hash: input.fileHash,
+      extracted_text: input.extractedText ?? null,
+      page_count: input.pageCount ?? null,
       ingested_via: "manual",
     })
     .select()
     .single();
 
-  if (docError || !doc) return { ok: false, error: "Failed to save document record" };
+  if (error || !doc) return { ok: false, error: error?.message ?? "Failed to save document" };
 
   return { ok: true, documentId: doc.id };
 }
@@ -97,7 +118,7 @@ export default function BulkUploadPage() {
         </p>
       </div>
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-        <BulkUploadForm uploadAction={uploadDocument} />
+        <BulkUploadForm prepareUpload={prepareUpload} finalizeUpload={finalizeUpload} />
       </div>
     </div>
   );
