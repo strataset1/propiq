@@ -198,7 +198,7 @@ export default async function AdminQueuePage() {
     .select("id, label, type, ingested_via, processed_at, created_at, extracted_text, storage_path, properties(address_raw)")
     .is("processed_at", null)
     .order("created_at", { ascending: false })
-    .limit(100);
+    .limit(500);
 
   const { data: batches } = await supabase
     .from("processing_batches")
