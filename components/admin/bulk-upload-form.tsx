@@ -122,6 +122,35 @@ export function BulkUploadForm({ uploadAction }: BulkUploadFormProps) {
 
   return (
     <div className="space-y-6">
+      {/* Progress summary */}
+      {entries.length > 0 && (
+        <div className="flex items-center justify-between">
+          <p className="text-slate-500 text-sm">
+            {doneCount} of {entries.length} uploaded
+            {pendingCount > 0 && ` · ${pendingCount} pending`}
+          </p>
+          <div className="flex gap-3">
+            {pendingCount === 0 && doneCount > 0 && (
+              <button
+                onClick={() => setEntries([])}
+                className="text-slate-400 hover:text-white text-sm px-4 py-2 rounded-lg border border-slate-700 transition-colors"
+              >
+                Clear
+              </button>
+            )}
+            {pendingCount > 0 && (
+              <button
+                onClick={handleUploadAll}
+                disabled={uploading}
+                className="bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-semibold text-sm px-6 py-2 rounded-lg transition-colors"
+              >
+                {uploading ? "Uploading…" : `Upload ${pendingCount} document${pendingCount === 1 ? "" : "s"}`}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* File picker */}
       <div
         className="border-2 border-dashed border-slate-700 rounded-xl p-8 text-center cursor-pointer hover:border-amber-500 transition-colors"
@@ -208,34 +237,6 @@ export function BulkUploadForm({ uploadAction }: BulkUploadFormProps) {
         </div>
       )}
 
-      {/* Actions */}
-      {entries.length > 0 && (
-        <div className="flex items-center justify-between">
-          <p className="text-slate-500 text-sm">
-            {doneCount} of {entries.length} uploaded
-            {pendingCount > 0 && ` · ${pendingCount} pending`}
-          </p>
-          <div className="flex gap-3">
-            {pendingCount === 0 && doneCount > 0 && (
-              <button
-                onClick={() => setEntries([])}
-                className="text-slate-400 hover:text-white text-sm px-4 py-2 rounded-lg border border-slate-700 transition-colors"
-              >
-                Clear
-              </button>
-            )}
-            {pendingCount > 0 && (
-              <button
-                onClick={handleUploadAll}
-                disabled={uploading}
-                className="bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-semibold text-sm px-6 py-2 rounded-lg transition-colors"
-              >
-                {uploading ? "Uploading…" : `Upload ${pendingCount} document${pendingCount === 1 ? "" : "s"}`}
-              </button>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
