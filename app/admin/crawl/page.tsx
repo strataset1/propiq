@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { createServiceClient } from "@/lib/supabase/server";
 import { NSW_SUBURBS } from "@/lib/crawler/suburbs-nsw";
 import { VIC_SUBURBS } from "@/lib/crawler/suburbs-vic";

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { createServiceClient } from "@/lib/supabase/server";
 import { createBatch } from "@/lib/processing/batch";
 import { ProcessButton } from "./process-button";
