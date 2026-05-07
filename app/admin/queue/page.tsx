@@ -76,6 +76,57 @@ async function saveExtraction(docId: string, propertyId: string, text: string) {
   }
 }
 
+async function processAllVision(): Promise<{ ok: true; queued: number; batchId: string } | { ok: false; error: string }> {
+  "use server";
+
+  const supabase = createServiceClient();
+  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+  const { data: docs } = await supabase
+    .from("documents")
+    .select("id, type, storage_path")
+    .is("processed_at", null)
+    .not("storage_path", "is", null)
+    .limit(100);
+
+  if (!docs || docs.length === 0) return { ok: false, error: "No documents with storage in queue" };
+
+  const requests = await Promise.all(docs.map(async (doc) => {
+    const { data: fileData } = await supabase.storage.from("property-documents").download(doc.storage_path!);
+    if (!fileData) return null;
+    const base64 = Buffer.from(await fileData.arrayBuffer()).toString("base64");
+    return {
+      custom_id: doc.id,
+      params: {
+        model: "claude-sonnet-4-6" as const,
+        max_tokens: 2048,
+        system: SYSTEM_PROMPT,
+        betas: ["pdfs-2024-09-25"] as string[],
+        messages: [{
+          role: "user" as const,
+          content: [
+            { type: "document" as const, source: { type: "base64" as const, media_type: "application/pdf" as const, data: base64 } },
+            { type: "text" as const, text: USER_PROMPT(doc.type) },
+          ],
+        }],
+      },
+    };
+  }));
+
+  const validRequests = requests.filter(Boolean) as NonNullable<typeof requests[0]>[];
+  if (validRequests.length === 0) return { ok: false, error: "Could not download any PDFs" };
+
+  const batch = await anthropic.beta.messages.batches.create({ requests: validRequests as any });
+
+  await supabase.from("processing_batches").insert({
+    batch_id: batch.id,
+    doc_ids: validRequests.map((r) => r.custom_id),
+    status: "in_progress",
+  });
+
+  return { ok: true, queued: validRequests.length, batchId: batch.id };
+}
+
 async function checkBatches(): Promise<{ ok: true; message: string } | { ok: false; error: string }> {
   "use server";
 
@@ -258,7 +309,10 @@ export default async function AdminQueuePage() {
           <h1 className="text-xl font-semibold text-white">Processing Queue</h1>
           <p className="text-slate-400 text-sm mt-1">{docs?.length ?? 0} documents awaiting processing</p>
         </div>
-        {docsWithText.length > 0 && <ProcessButton processAction={processQueue} />}
+        <div className="flex gap-2">
+          {docsWithText.length > 0 && <ProcessButton processAction={processQueue} label="Batch Process (text)" />}
+          {docs && docs.length > 0 && <ProcessButton processAction={processAllVision} label={`Process All ${docs.length} (vision)`} />}
+        </div>
       </div>
 
       {batches && batches.length > 0 && (
