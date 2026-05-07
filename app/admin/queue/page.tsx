@@ -91,10 +91,12 @@ async function processAllVision(): Promise<{ ok: true; queued: number; batchId: 
 
   if (!docs || docs.length === 0) return { ok: false, error: "No documents with storage in queue" };
 
-  const requests = await Promise.all(docs.map(async (doc) => {
-    const { data: fileData } = await supabase.storage.from("property-documents").download(doc.storage_path!);
-    if (!fileData) return null;
-    const base64 = Buffer.from(await fileData.arrayBuffer()).toString("base64");
+  // Generate signed URLs — Anthropic fetches the PDFs directly, nothing is downloaded server-side
+  const requests = (await Promise.all(docs.map(async (doc) => {
+    const { data: signed } = await supabase.storage
+      .from("property-documents")
+      .createSignedUrl(doc.storage_path!, 7200); // 2 hour expiry
+    if (!signed?.signedUrl) return null;
     return {
       custom_id: doc.id,
       params: {
@@ -105,26 +107,25 @@ async function processAllVision(): Promise<{ ok: true; queued: number; batchId: 
         messages: [{
           role: "user" as const,
           content: [
-            { type: "document" as const, source: { type: "base64" as const, media_type: "application/pdf" as const, data: base64 } },
+            { type: "document" as const, source: { type: "url" as const, url: signed.signedUrl } },
             { type: "text" as const, text: USER_PROMPT(doc.type) },
           ],
         }],
       },
     };
-  }));
+  }))).filter(Boolean) as NonNullable<Awaited<ReturnType<typeof Promise.all<any>>>>[0][];
 
-  const validRequests = requests.filter(Boolean) as NonNullable<typeof requests[0]>[];
-  if (validRequests.length === 0) return { ok: false, error: "Could not download any PDFs" };
+  if (requests.length === 0) return { ok: false, error: "Could not generate signed URLs" };
 
-  const batch = await anthropic.beta.messages.batches.create({ requests: validRequests as any });
+  const batch = await anthropic.beta.messages.batches.create({ requests: requests as any });
 
   await supabase.from("processing_batches").insert({
     batch_id: batch.id,
-    doc_ids: validRequests.map((r) => r.custom_id),
+    doc_ids: requests.map((r: any) => r.custom_id),
     status: "in_progress",
   });
 
-  return { ok: true, queued: validRequests.length, batchId: batch.id };
+  return { ok: true, queued: requests.length, batchId: batch.id };
 }
 
 async function checkBatches(): Promise<{ ok: true; message: string } | { ok: false; error: string }> {
@@ -146,7 +147,7 @@ async function checkBatches(): Promise<{ ok: true; message: string } | { ok: fal
 
   for (const batch of batches) {
     try {
-      const apiBatch = await anthropic.messages.batches.retrieve(batch.batch_id);
+      const apiBatch = await anthropic.beta.messages.batches.retrieve(batch.batch_id);
 
       if (apiBatch.processing_status === "ended") {
         const { pollAndWriteResults } = await import("@/lib/processing/batch");
@@ -206,6 +207,8 @@ async function deleteOne(docId: string): Promise<{ ok: true } | { ok: false; err
     .select("storage_path")
     .eq("id", docId)
     .single();
+
+  await supabase.from("strata_bylaws").delete().eq("document_id", docId);
 
   if (doc?.storage_path) {
     await supabase.storage.from("property-documents").remove([doc.storage_path]);

@@ -31,7 +31,7 @@ export default async function AdminLoginPage({
     <main className="min-h-screen bg-slate-950 flex items-center justify-center">
       <div className="w-full max-w-sm space-y-6 p-8">
         <div className="text-center">
-          <h1 className="text-2xl font-semibold text-amber-400 font-mono">PropIQ Admin</h1>
+          <h1 className="text-2xl font-semibold text-amber-400 font-mono">Strataset Admin</h1>
           <p className="text-slate-400 text-sm mt-2">Internal access only</p>
         </div>
 
