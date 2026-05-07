@@ -7,37 +7,84 @@ async function uploadDocument(formData: FormData): Promise<
 > {
   "use server";
 
+  const { createServiceClient } = await import("@/lib/supabase/server");
+  const { sha256 } = await import("@/lib/utils/hash");
+  const { normaliseAddress } = await import("@/lib/utils/address");
+
   const file = formData.get("file") as File | null;
-  const address = formData.get("address") as string | null;
+  const addressRaw = (formData.get("address") as string | null)?.trim() || null;
   const type = formData.get("type") as string | null;
   const label = formData.get("label") as string | null;
+  const extractedText = formData.get("extracted_text") as string | null;
+  const pageCount = formData.get("page_count") ? parseInt(formData.get("page_count") as string) : null;
 
-  if (!file || !address || !type || !label) {
+  if (!file || !type || !label) {
     return { ok: false, error: "Missing required fields" };
   }
 
-  const uploadFormData = new FormData();
-  uploadFormData.append("file", file);
-  uploadFormData.append("address", address);
-  uploadFormData.append("type", type);
-  uploadFormData.append("label", label);
+  const supabase = createServiceClient();
 
-  const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/admin/upload`, {
-    method: "POST",
-    headers: { "x-admin-secret": process.env.ADMIN_SECRET! },
-    body: uploadFormData,
-  });
+  let property: { id: string } | null = null;
 
-  const data = await res.json();
-
-  if (res.ok) {
-    if (data.message === "Document already exists") {
-      return { ok: true, duplicate: true, documentId: data.document_id };
-    }
-    return { ok: true, documentId: data.document_id };
+  if (addressRaw) {
+    const addressNormalised = await normaliseAddress(addressRaw);
+    const { data, error } = await supabase
+      .from("properties")
+      .upsert(
+        { address_raw: addressRaw, address_normalised: addressNormalised, status: "processing" },
+        { onConflict: "address_normalised" }
+      )
+      .select()
+      .single();
+    if (error || !data) return { ok: false, error: "Failed to create property" };
+    property = data;
+  } else {
+    const { data, error } = await supabase
+      .from("properties")
+      .insert({ address_raw: label, address_normalised: null, status: "processing" })
+      .select()
+      .single();
+    if (error || !data) return { ok: false, error: "Failed to create property" };
+    property = data;
   }
 
-  return { ok: false, error: data.error ?? "Upload failed" };
+  const bytes = await file.arrayBuffer();
+  const buffer = Buffer.from(bytes);
+  const fileHash = sha256(buffer.toString("base64"));
+
+  const { data: existing } = await supabase
+    .from("documents")
+    .select("id")
+    .eq("file_hash", fileHash)
+    .single();
+
+  if (existing) return { ok: true, duplicate: true, documentId: existing.id };
+
+  const storagePath = `${property.id}/${Date.now()}-${file.name}`;
+  const { error: uploadError } = await supabase.storage
+    .from("property-documents")
+    .upload(storagePath, buffer, { contentType: "application/pdf" });
+
+  if (uploadError) return { ok: false, error: "Storage upload failed" };
+
+  const { data: doc, error: docError } = await supabase
+    .from("documents")
+    .insert({
+      property_id: property.id,
+      type: type as "strata" | "building_inspection" | "contract" | "lease" | "council" | "other",
+      label,
+      storage_path: storagePath,
+      file_hash: fileHash,
+      extracted_text: extractedText ?? null,
+      page_count: pageCount ?? null,
+      ingested_via: "manual",
+    })
+    .select()
+    .single();
+
+  if (docError || !doc) return { ok: false, error: "Failed to save document record" };
+
+  return { ok: true, documentId: doc.id };
 }
 
 export default function BulkUploadPage() {
