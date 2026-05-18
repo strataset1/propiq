@@ -22,18 +22,6 @@ function extractPdfUrls(text: string): string[] {
   return [...new Set(matches)];
 }
 
-function getTextFromResponse(response: any): string {
-  return (response.output ?? [])
-    .flatMap((item: any) => {
-      if (item.type === "message") {
-        return (item.content ?? [])
-          .filter((c: any) => c.type === "output_text")
-          .map((c: any) => c.text ?? "");
-      }
-      return [];
-    })
-    .join("\n");
-}
 
 export type SearchResult = {
   url: string;
@@ -69,10 +57,9 @@ Return ONLY a plain list of direct .pdf URLs, one per line, nothing else.`] : []
 
   const responses = await Promise.allSettled(
     prompts.map((input) =>
-      (openai as any).responses.create({
+      openai.chat.completions.create({
         model: "gpt-4o-search-preview",
-        tools: [{ type: "web_search_preview" }],
-        input,
+        messages: [{ role: "user", content: input }],
       })
     )
   );
@@ -82,7 +69,8 @@ Return ONLY a plain list of direct .pdf URLs, one per line, nothing else.`] : []
 
   for (const res of responses) {
     if (res.status !== "fulfilled") continue;
-    for (const url of extractPdfUrls(getTextFromResponse(res.value))) {
+    const text = res.value.choices?.[0]?.message?.content ?? "";
+    for (const url of extractPdfUrls(text)) {
       if (!isNoisy(url) && !isGenericCdn(url) && !seen.has(url)) {
         seen.add(url);
         results.push({ url, title: url.split("/").pop() ?? url, source: "openai" });
