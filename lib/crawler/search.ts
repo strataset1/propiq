@@ -1,4 +1,5 @@
 import FirecrawlApp from "@mendable/firecrawl-js";
+import OpenAI from "openai";
 import { getSearchTerms } from "./postcodes";
 
 const NOISE_FILENAME_PATTERNS = [
@@ -25,8 +26,6 @@ function isPdfUrl(url: string): boolean {
   return url.toLowerCase().endsWith(".pdf");
 }
 
-// Loosened from bylaw-filename-only to also catch strata plan style naming
-// (SP12345, consolidated, schedule-a) common in Sydney CBD documents
 const STRATA_DOC_SIGNALS = [
   "by-law", "bylaw", "by_law", "bylaws", "by-laws", "by_laws",
   "strata-plan", "strataplan", "strata_plan", "consolidated",
@@ -38,22 +37,66 @@ function looksLikeStrataDoc(url: string): boolean {
   return STRATA_DOC_SIGNALS.some((s) => lower.includes(s));
 }
 
+// Generic CDN URLs have no location context — filter unless it's the known strata bucket
+const GENERIC_CDN_HOSTS = ["squarespace.com/static/", "cloudfront.net/", "amazonaws.com/s3/"];
+
+function isGenericCdn(url: string): boolean {
+  if (url.includes("aro-au-prod-storage")) return false;
+  return GENERIC_CDN_HOSTS.some((h) => url.includes(h));
+}
+
+// Extract all https:// URLs ending in .pdf from a block of text
+function extractPdfUrls(text: string): string[] {
+  const matches = text.match(/https?:\/\/[^\s"')>]+\.pdf/gi) ?? [];
+  return [...new Set(matches)];
+}
+
 export type SearchResult = {
   url: string;
   title: string;
-  source: "tavily" | "firecrawl";
+  source: "openai" | "tavily" | "firecrawl";
 };
 
-// Generic CDN storage URLs (squarespace, cloudfront, etc.) have no location info
-// in the path — they're false positives unless the path itself contains a location signal.
-const GENERIC_CDN_HOSTS = [
-  "squarespace.com/static/", "cloudfront.net/", "amazonaws.com/s3/",
-];
+async function searchOpenAI(
+  fullLocation: string,
+  seen: Set<string>,
+  out: SearchResult[]
+): Promise<void> {
+  if (!process.env.OPENAI_API_KEY) return;
 
-function isGenericCdn(url: string): boolean {
-  // aro-au-prod-storage is a legitimate strata-specific S3 bucket — always allow it
-  if (url.includes("aro-au-prod-storage")) return false;
-  return GENERIC_CDN_HOSTS.some((h) => url.includes(h));
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+  try {
+    const response = await (openai as any).responses.create({
+      model: "gpt-4o-mini",
+      tools: [{ type: "web_search_preview" }],
+      input: `Find publicly accessible strata by-law PDF documents for ${fullLocation} Australia.
+Search for direct .pdf file URLs from strata management companies, building websites, and document repositories.
+Focus especially on the aro-au-prod-storage.s3-ap-southeast-2.amazonaws.com bucket which hosts many Sydney strata by-laws.
+Return only a plain list of direct .pdf URLs, one per line, with no other text.`,
+    });
+
+    // Extract text from all output items
+    const text = (response.output ?? [])
+      .flatMap((item: any) => {
+        if (item.type === "message") {
+          return (item.content ?? [])
+            .filter((c: any) => c.type === "output_text")
+            .map((c: any) => c.text ?? "");
+        }
+        return [];
+      })
+      .join("\n");
+
+    for (const url of extractPdfUrls(text)) {
+      if (looksLikeStrataDoc(url) && !isNoisy(url) && !isGenericCdn(url) && !seen.has(url)) {
+        seen.add(url);
+        out.push({ url, title: url.split("/").pop() ?? url, source: "openai" });
+      }
+    }
+  } catch {
+    // Non-fatal
+  }
 }
 
 async function searchTavily(
@@ -63,14 +106,12 @@ async function searchTavily(
 ): Promise<void> {
   if (!process.env.TAVILY_API_KEY) return;
 
-  // Extract postcode from fullLocation (e.g. "Sydney CBD 2000" → "2000")
   const postcodeMatch = fullLocation.match(/\d{4}$/);
   const postcode = postcodeMatch?.[0];
 
   const queries = [
     `strata by-laws "${fullLocation}" filetype:pdf`,
     `consolidated by-laws "${fullLocation}" strata plan pdf`,
-    // Target the Aro Storage S3 bucket used by many Sydney strata managers
     ...(postcode ? [`site:aro-au-prod-storage.s3-ap-southeast-2.amazonaws.com "${postcode}" by-laws pdf`] : []),
   ];
 
@@ -95,7 +136,7 @@ async function searchTavily(
         }
       }
     } catch {
-      // Non-fatal — Firecrawl may still find results
+      // Non-fatal
     }
   }
 }
@@ -114,7 +155,6 @@ async function searchFirecrawl(
 
   const queries = [
     `strata by-laws ${fullLocation} site:.com.au filetype:pdf`,
-    `"strata plan" by-laws ${fullLocation} pdf`,
     ...(postcode ? [`site:aro-au-prod-storage.s3-ap-southeast-2.amazonaws.com "${postcode}" by-laws`] : []),
   ];
 
@@ -135,8 +175,6 @@ async function searchFirecrawl(
   }
 }
 
-// Crawl known strata management sites that don't surface well in search engines
-// because their documents are nested in portals or use non-standard naming.
 const STRATA_SITES = [
   "https://www.stratachoice.com.au",
   "https://www.cspgroup.com.au",
@@ -180,13 +218,13 @@ export async function searchSuburbForPdfs(suburb: string): Promise<SearchResult[
   const seen = new Set<string>();
   const results: SearchResult[] = [];
 
-  // Run all three sources in parallel — each is non-fatal if it fails
   await Promise.allSettled([
+    searchOpenAI(fullLocation, seen, results),
     searchTavily(fullLocation, seen, results),
     searchFirecrawl(fullLocation, seen, results),
     crawlStrataSites(fullLocation, seen, results),
   ]);
 
-  console.log(`[search] ${suburb} (${fullLocation}): ${results.length} PDFs (tavily + firecrawl)`);
-  return results.slice(0, 15);
+  console.log(`[search] ${suburb} (${fullLocation}): ${results.length} PDFs (openai + tavily + firecrawl)`);
+  return results.slice(0, 20);
 }

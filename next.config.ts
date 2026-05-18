@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  serverExternalPackages: ["pdf-parse", "@anthropic-ai/sdk", "stripe", "@mendable/firecrawl-js"],
+  serverExternalPackages: ["pdf-parse", "@anthropic-ai/sdk", "stripe", "@mendable/firecrawl-js", "openai"],
   experimental: {
     serverActions: {
       bodySizeLimit: "50mb",
