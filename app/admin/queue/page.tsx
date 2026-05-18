@@ -303,6 +303,83 @@ async function processOne(docId: string): Promise<{ ok: true } | { ok: false; er
   }
 }
 
+async function importGreencliff(): Promise<{ ok: true; queued: number } | { ok: false; error: string }> {
+  "use server";
+
+  const supabase = createServiceClient();
+
+  // Scrape the Greencliff public by-laws index page
+  let html: string;
+  try {
+    const res = await fetch("https://www.greencliff.com.au/strata-bylaws", {
+      headers: { "User-Agent": "Mozilla/5.0" },
+    });
+    if (!res.ok) return { ok: false, error: `Greencliff page returned ${res.status}` };
+    html = await res.text();
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to fetch Greencliff page" };
+  }
+
+  const urls = [...new Set(html.match(/https?:\/\/[^"]*\.pdf/gi) ?? [])];
+  if (urls.length === 0) return { ok: false, error: "No PDFs found on Greencliff page" };
+
+  // Check which URLs are already ingested
+  const { data: existing } = await supabase
+    .from("documents")
+    .select("source_url")
+    .in("source_url", urls);
+
+  const existingUrls = new Set((existing ?? []).map((d) => d.source_url));
+  const newUrls = urls.filter((u) => !existingUrls.has(u));
+
+  if (newUrls.length === 0) return { ok: false, error: "All Greencliff docs already imported" };
+
+  // Queue each new PDF — property + address resolved during Claude processing
+  let queued = 0;
+  for (const url of newUrls) {
+    const filename = decodeURIComponent(url.split("/").pop() ?? "");
+    const label = filename.replace(/-[a-f0-9]{12,}\.pdf$/i, "").replace(/[_-]/g, " ").trim();
+
+    const { data: property } = await supabase
+      .from("properties")
+      .insert({ address_raw: label, address_normalised: null, status: "processing" })
+      .select()
+      .single();
+
+    if (!property) continue;
+
+    const storagePath = `${property.id}/${Date.now()}-${filename}`;
+
+    // Download and upload to storage
+    try {
+      const res = await fetch(url);
+      if (!res.ok) continue;
+      const buffer = Buffer.from(await res.arrayBuffer());
+
+      const { error: uploadErr } = await supabase.storage
+        .from("property-documents")
+        .upload(storagePath, buffer, { contentType: "application/pdf" });
+
+      if (uploadErr) continue;
+    } catch {
+      continue;
+    }
+
+    await supabase.from("documents").insert({
+      property_id: property.id,
+      type: "strata",
+      label,
+      source_url: url,
+      storage_path: storagePath,
+      ingested_via: "crawler",
+    });
+
+    queued++;
+  }
+
+  return { ok: true, queued };
+}
+
 export default async function AdminQueuePage() {
   const supabase = createServiceClient();
 
@@ -329,6 +406,7 @@ export default async function AdminQueuePage() {
           <p className="text-slate-400 text-sm mt-1">{docs?.length ?? 0} documents awaiting processing</p>
         </div>
         <div className="flex gap-2">
+          <ProcessButton processAction={importGreencliff} label="Import Greencliff (123 docs)" />
           {docsWithText.length > 0 && <ProcessButton processAction={processQueue} label="Batch Process (text)" />}
           {docs && docs.length > 0 && <ProcessButton processAction={processAllVision} label={`Process All ${docs.length} (vision)`} />}
         </div>
