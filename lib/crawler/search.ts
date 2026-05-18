@@ -66,18 +66,41 @@ async function searchOpenAI(
 
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-  try {
-    const response = await (openai as any).responses.create({
-      model: "gpt-4o-mini",
-      tools: [{ type: "web_search_preview" }],
-      input: `Find publicly accessible strata by-law PDF documents for ${fullLocation} Australia.
-Search for direct .pdf file URLs from strata management companies, building websites, and document repositories.
-Focus especially on the aro-au-prod-storage.s3-ap-southeast-2.amazonaws.com bucket which hosts many Sydney strata by-laws.
-Return only a plain list of direct .pdf URLs, one per line, with no other text.`,
-    });
+  const postcodeMatch = fullLocation.match(/\d{4}$/);
+  const postcode = postcodeMatch?.[0];
 
-    // Extract text from all output items
-    const text = (response.output ?? [])
+  // Run multiple search angles in parallel — ChatGPT's advantage is it searches several times
+  const prompts = [
+    `Find all publicly accessible strata by-law PDF documents for ${fullLocation} Australia.
+Search the aro-au-prod-storage.s3-ap-southeast-2.amazonaws.com bucket specifically — it hosts by-laws for many Sydney buildings.
+Also search strata management company websites and individual building websites.
+Return ONLY a plain list of direct .pdf URLs, one per line, nothing else.`,
+
+    `Search for strata scheme by-law PDFs for buildings in ${fullLocation}${postcode ? ` postcode ${postcode}` : ""} Australia.
+Look for consolidated by-laws, strata plan documents, and schedule of by-laws.
+Check sites like millenniumtowers.com.au and other individual building websites.
+Return ONLY a plain list of direct .pdf URLs, one per line, nothing else.`,
+
+    ...(postcode ? [
+      `Site search: site:aro-au-prod-storage.s3-ap-southeast-2.amazonaws.com "${postcode}"
+Find all strata by-law PDF files in this S3 bucket for postcode ${postcode}.
+Return ONLY a plain list of direct .pdf URLs, one per line, nothing else.`,
+    ] : []),
+  ];
+
+  const responses = await Promise.allSettled(
+    prompts.map((input) =>
+      (openai as any).responses.create({
+        model: "gpt-4o-search-preview",
+        tools: [{ type: "web_search_preview" }],
+        input,
+      })
+    )
+  );
+
+  for (const res of responses) {
+    if (res.status !== "fulfilled") continue;
+    const text = (res.value.output ?? [])
       .flatMap((item: any) => {
         if (item.type === "message") {
           return (item.content ?? [])
@@ -89,13 +112,12 @@ Return only a plain list of direct .pdf URLs, one per line, with no other text.`
       .join("\n");
 
     for (const url of extractPdfUrls(text)) {
-      if (looksLikeStrataDoc(url) && !isNoisy(url) && !isGenericCdn(url) && !seen.has(url)) {
+      // Trust OpenAI's judgement on what's a strata doc — skip the filename filter
+      if (!isNoisy(url) && !isGenericCdn(url) && !seen.has(url)) {
         seen.add(url);
         out.push({ url, title: url.split("/").pop() ?? url, source: "openai" });
       }
     }
-  } catch {
-    // Non-fatal
   }
 }
 
@@ -226,5 +248,5 @@ export async function searchSuburbForPdfs(suburb: string): Promise<SearchResult[
   ]);
 
   console.log(`[search] ${suburb} (${fullLocation}): ${results.length} PDFs (openai + tavily + firecrawl)`);
-  return results.slice(0, 20);
+  return results.slice(0, 30);
 }
