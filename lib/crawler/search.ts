@@ -44,6 +44,18 @@ export type SearchResult = {
   source: "tavily" | "firecrawl";
 };
 
+// Generic CDN storage URLs (squarespace, cloudfront, etc.) have no location info
+// in the path — they're false positives unless the path itself contains a location signal.
+const GENERIC_CDN_HOSTS = [
+  "squarespace.com/static/", "cloudfront.net/", "amazonaws.com/s3/",
+];
+
+function isGenericCdn(url: string): boolean {
+  // aro-au-prod-storage is a legitimate strata-specific S3 bucket — always allow it
+  if (url.includes("aro-au-prod-storage")) return false;
+  return GENERIC_CDN_HOSTS.some((h) => url.includes(h));
+}
+
 async function searchTavily(
   fullLocation: string,
   seen: Set<string>,
@@ -51,9 +63,15 @@ async function searchTavily(
 ): Promise<void> {
   if (!process.env.TAVILY_API_KEY) return;
 
+  // Extract postcode from fullLocation (e.g. "Sydney CBD 2000" → "2000")
+  const postcodeMatch = fullLocation.match(/\d{4}$/);
+  const postcode = postcodeMatch?.[0];
+
   const queries = [
     `strata by-laws "${fullLocation}" filetype:pdf`,
     `consolidated by-laws "${fullLocation}" strata plan pdf`,
+    // Target the Aro Storage S3 bucket used by many Sydney strata managers
+    ...(postcode ? [`site:aro-au-prod-storage.s3-ap-southeast-2.amazonaws.com "${postcode}" by-laws pdf`] : []),
   ];
 
   for (const query of queries) {
@@ -71,7 +89,7 @@ async function searchTavily(
       if (!res.ok) continue;
       const data = await res.json() as { results: { url: string; title: string }[] };
       for (const r of data.results ?? []) {
-        if (isPdfUrl(r.url) && looksLikeStrataDoc(r.url) && !isNoisy(r.url) && !seen.has(r.url)) {
+        if (isPdfUrl(r.url) && looksLikeStrataDoc(r.url) && !isNoisy(r.url) && !isGenericCdn(r.url) && !seen.has(r.url)) {
           seen.add(r.url);
           out.push({ url: r.url, title: r.title, source: "tavily" });
         }
@@ -91,9 +109,13 @@ async function searchFirecrawl(
 
   const app = new FirecrawlApp({ apiKey: process.env.FIRECRAWL_API_KEY });
 
+  const postcodeMatch = fullLocation.match(/\d{4}$/);
+  const postcode = postcodeMatch?.[0];
+
   const queries = [
     `strata by-laws ${fullLocation} site:.com.au filetype:pdf`,
     `"strata plan" by-laws ${fullLocation} pdf`,
+    ...(postcode ? [`site:aro-au-prod-storage.s3-ap-southeast-2.amazonaws.com "${postcode}" by-laws`] : []),
   ];
 
   for (const query of queries) {
@@ -102,7 +124,7 @@ async function searchFirecrawl(
       const hits: { url: string; title?: string }[] = result?.data ?? result?.results ?? [];
       for (const r of hits) {
         if (!r.url) continue;
-        if (isPdfUrl(r.url) && looksLikeStrataDoc(r.url) && !isNoisy(r.url) && !seen.has(r.url)) {
+        if (isPdfUrl(r.url) && looksLikeStrataDoc(r.url) && !isNoisy(r.url) && !isGenericCdn(r.url) && !seen.has(r.url)) {
           seen.add(r.url);
           out.push({ url: r.url, title: r.title ?? r.url, source: "firecrawl" });
         }
