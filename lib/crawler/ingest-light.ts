@@ -83,7 +83,7 @@ export async function ingestPdfLight(
     .insert({
       property_id: property.id,
       type: "strata",
-      label: `Strata By-Laws — ${suburb}`,
+      label: addressRaw !== suburb ? addressRaw : `Strata By-Laws — ${suburb}`,
       source_url: url,
       storage_path: storagePath,
       file_hash: fileHash,
