@@ -40,42 +40,37 @@ export async function searchSuburbForPdfs(suburb: string): Promise<SearchResult[
 
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-  const prompts = [
-    `Find all publicly accessible strata by-law PDF documents for ${fullLocation} Australia.
-Search the web including the aro-au-prod-storage.s3-ap-southeast-2.amazonaws.com S3 bucket, strata management company websites, and individual building websites.
-Return ONLY a plain list of direct .pdf URLs, one per line, nothing else.`,
+  const prompt = `Search the web and find all publicly accessible strata by-law PDF documents for ${fullLocation} Australia.
 
-    `Search for strata scheme by-law PDFs for residential buildings in ${fullLocation}${postcode ? ` (postcode ${postcode})` : ""} Australia.
-Look for consolidated by-laws, strata plan schedule of by-laws, and registered by-law instruments.
-Search building websites, body corporate portals, and document repositories.
-Return ONLY a plain list of direct .pdf URLs, one per line, nothing else.`,
+Search using all of these approaches:
+1. "${fullLocation}" "strata by-laws" filetype:pdf
+2. "${fullLocation}" "consolidated by-laws" strata plan pdf
+3. site:aro-au-prod-storage.s3-ap-southeast-2.amazonaws.com "${postcode ?? city}" by-laws
+4. "${fullLocation}" "registered by-laws" strata pdf
+5. Building-specific websites for ${fullLocation} that publish by-laws
 
-    ...(postcode ? [`Search specifically for: site:aro-au-prod-storage.s3-ap-southeast-2.amazonaws.com ${postcode} strata by-laws
-This S3 bucket hosts by-law PDFs for many Australian strata buildings. Find as many as possible for postcode ${postcode}.
-Return ONLY a plain list of direct .pdf URLs, one per line, nothing else.`] : []),
-  ];
-
-  const responses = await Promise.allSettled(
-    prompts.map((input) =>
-      openai.chat.completions.create({
-        model: "gpt-4o-search-preview",
-        messages: [{ role: "user", content: input }],
-      })
-    )
-  );
+Return ONLY a plain list of direct .pdf URLs, one per line, no explanations, no numbering, nothing else.`;
 
   const seen = new Set<string>();
   const results: SearchResult[] = [];
 
-  for (const res of responses) {
-    if (res.status !== "fulfilled") continue;
-    const text = res.value.choices?.[0]?.message?.content ?? "";
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-search-preview",
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    const text = response.choices?.[0]?.message?.content ?? "";
+    console.log(`[search] ${suburb} OpenAI response length: ${text.length}`);
+
     for (const url of extractPdfUrls(text)) {
       if (!isNoisy(url) && !isGenericCdn(url) && !seen.has(url)) {
         seen.add(url);
         results.push({ url, title: url.split("/").pop() ?? url, source: "openai" });
       }
     }
+  } catch (e) {
+    console.error(`[search] OpenAI error for ${suburb}:`, e instanceof Error ? e.message : e);
   }
 
   console.log(`[search] ${suburb} (${fullLocation}): ${results.length} PDFs`);

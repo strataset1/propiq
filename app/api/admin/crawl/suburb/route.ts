@@ -3,7 +3,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { searchSuburbForPdfs } from "@/lib/crawler/search";
 import { ingestPdfLight } from "@/lib/crawler/ingest-light";
 
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 export async function POST(req: NextRequest) {
   try {
