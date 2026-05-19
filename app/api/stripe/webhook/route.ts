@@ -1,6 +1,7 @@
 // app/api/stripe/webhook/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe/client";
+import { createServiceClient } from "@/lib/supabase/server";
 import { handleLicensePaid, handleSubscriptionUpdated, handleSubscriptionDeleted } from "@/lib/stripe/webhooks";
 
 // Map Stripe price IDs to plan names — fill these in when Sam creates the Stripe products
@@ -49,6 +50,21 @@ export async function POST(req: NextRequest) {
     case "customer.subscription.deleted": {
       const sub = event.data.object as any;
       await handleSubscriptionDeleted(sub.customer);
+      break;
+    }
+
+    case "checkout.session.completed": {
+      const cs = event.data.object as any;
+      if (cs.metadata?.type === "doc_purchase" && cs.metadata.document_id) {
+        const supabase = createServiceClient();
+        await supabase.from("purchases").insert({
+          stripe_session_id: cs.id,
+          document_id: cs.metadata.document_id,
+          amount_aud_cents: cs.amount_total,
+          customer_email: cs.customer_details?.email ?? null,
+          paid_at: new Date().toISOString(),
+        });
+      }
       break;
     }
   }
