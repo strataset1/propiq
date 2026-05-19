@@ -70,12 +70,13 @@ export default function HomePage() {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (query.length < 3) { setSuggestions([]); return; }
     debounceRef.current = setTimeout(async () => {
+      const isPostcode = /^\d{4}$/.test(query.trim());
       const { data } = await supabase
         .from("properties")
         .select("id, address_raw")
         .or(`address_normalised.ilike.%${query}%,address_raw.ilike.%${query}%`)
         .eq("status", "ready")
-        .limit(6);
+        .limit(isPostcode ? 20 : 6);
       setSuggestions(data ?? []);
     }, 250);
   }, [query]);
@@ -182,7 +183,7 @@ export default function HomePage() {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search by address e.g. 129 Harrington St, Sydney"
+                placeholder="Search by address or postcode e.g. 2000, 129 Harrington St"
                 className="w-full bg-slate-900 border border-slate-700 hover:border-slate-600 focus:border-amber-500 text-white rounded-xl pl-10 pr-4 py-4 text-sm placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/30 transition-colors shadow-lg"
               />
               {suggestions.length > 0 && (
