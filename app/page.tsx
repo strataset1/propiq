@@ -119,7 +119,7 @@ export default function HomePage() {
               Contact Sales
             </a>
             <Link
-              href="/dashboard"
+              href="/login"
               className="bg-slate-800 hover:bg-slate-700 text-white text-sm px-4 py-1.5 rounded-lg transition-colors"
             >
               Business Login →
@@ -238,7 +238,7 @@ export default function HomePage() {
               Contact Sales
             </a>
             <Link
-              href="/dashboard"
+              href="/login"
               className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold text-sm px-5 py-2 rounded-lg transition-colors"
             >
               Business Login →
