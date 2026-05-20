@@ -297,10 +297,21 @@ async function processOne(docId: string): Promise<{ ok: true } | { ok: false; er
 
   try {
     await saveExtraction(docId, doc.property_id, responseText);
-    return { ok: true };
   } catch (e) {
     return { ok: false, error: `Failed to save: ${e instanceof Error ? e.message : "unknown"}` };
   }
+
+  // Run liability extraction as a second pass (non-fatal)
+  try {
+    const { extractLiability } = await import("@/lib/processing/extract-liability");
+    const { saveLiabilityExtractions } = await import("@/lib/db/liability-extractions");
+    const triplets = await extractLiability(doc, supabase);
+    await saveLiabilityExtractions(doc.property_id, docId, triplets, supabase);
+  } catch (e) {
+    console.error("[liability extraction]", e instanceof Error ? e.message : e);
+  }
+
+  return { ok: true };
 }
 
 async function importGreencliff(): Promise<{ ok: true; queued: number } | { ok: false; error: string }> {

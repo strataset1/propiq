@@ -1,6 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { normaliseAddress } from "@/lib/utils/address";
+import { extractLiability } from "@/lib/processing/extract-liability";
+import { saveLiabilityExtractions } from "@/lib/db/liability-extractions";
 
 const MODEL = "claude-sonnet-4-6";
 
@@ -159,6 +161,22 @@ export async function pollAndWriteResults(
       .from("documents")
       .update({ processed_at: new Date().toISOString() })
       .eq("id", docId);
+
+    // Run liability extraction as a second pass (non-fatal)
+    try {
+      const { data: docFull } = await supabase
+        .from("documents")
+        .select("id, type, extracted_text, storage_path")
+        .eq("id", docId)
+        .single();
+
+      if (docFull) {
+        const triplets = await extractLiability(docFull, supabase);
+        await saveLiabilityExtractions(doc.property_id, docId, triplets, supabase);
+      }
+    } catch (e) {
+      console.error("[liability batch]", e instanceof Error ? e.message : e);
+    }
 
     processed++;
   }
