@@ -305,8 +305,8 @@ async function processOne(docId: string): Promise<{ ok: true } | { ok: false; er
   try {
     const { extractLiability } = await import("@/lib/processing/extract-liability");
     const { saveLiabilityExtractions } = await import("@/lib/db/liability-extractions");
-    const triplets = await extractLiability(doc, supabase);
-    await saveLiabilityExtractions(doc.property_id, docId, triplets, supabase);
+    const extraction = await extractLiability(doc, supabase);
+    if (extraction) await saveLiabilityExtractions(doc.property_id, docId, extraction, supabase);
   } catch (e) {
     console.error("[liability extraction]", e instanceof Error ? e.message : e);
   }

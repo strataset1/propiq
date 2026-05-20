@@ -171,8 +171,8 @@ export async function pollAndWriteResults(
         .single();
 
       if (docFull) {
-        const triplets = await extractLiability(docFull, supabase);
-        await saveLiabilityExtractions(doc.property_id, docId, triplets, supabase);
+        const extraction = await extractLiability(docFull, supabase);
+        if (extraction) await saveLiabilityExtractions(doc.property_id, docId, extraction, supabase);
       }
     } catch (e) {
       console.error("[liability batch]", e instanceof Error ? e.message : e);

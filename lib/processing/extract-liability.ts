@@ -11,88 +11,93 @@ export type LiabilityCategory =
   | "mixed_use_occupancy"
   | "pets";
 
-export type ResponsibleParty = "lot_owner" | "strata" | "shared" | "unclear";
+export type ResponsibleParty = "lot_owner" | "strata" | "shared" | "not_mentioned";
 
-export type LiabilityTriplet = {
-  asset: string;
-  responsible_party: ResponsibleParty;
-  obligation: string;
-  source_phrase: string;
+export type LiabilityField = {
+  summary: string | null;
   confidence: number;
-  category: LiabilityCategory;
+  responsible_party: ResponsibleParty;
+  source_phrase: string | null;
 };
+
+export type LiabilityExtraction = Record<LiabilityCategory, LiabilityField>;
 
 const SYSTEM_PROMPT = `You are a strata by-law liability extraction system specialising in Australian property law.
 
-Your job: find every clause that allocates responsibility between a LOT OWNER or STRATA entity.
+For each of the 8 fields below, analyse the document and determine:
+- summary: 1–2 sentence plain-English description of what the document says about this topic (null if not mentioned)
+- confidence: 0.0–1.0 (how confident you are in the extraction)
+- responsible_party: who bears the responsibility — "lot_owner", "strata", "shared", or "not_mentioned"
+- source_phrase: the most relevant verbatim quote from the document, or null if not mentioned
 
-LOT OWNER entities: owner, lot owner, occupier, tenant, resident, lessee
-STRATA entities: owners corporation, body corporate, strata corporation, HOA, committee
+To determine responsible_party, look for these signals:
+Owner signals: "owner responsible for", "must maintain", "at the owner's expense", "must indemnify", "liable for", "serving the lot", "occupier must"
+Strata signals: "owners corporation responsible", "common property", "body corporate responsible", "strata must"
 
-For each responsibility clause extract a structured triplet:
-- asset: the thing being maintained/repaired/insured (snake_case, e.g. waterproof_membrane)
-- responsible_party: "lot_owner" | "strata" | "shared" | "unclear"
-- obligation: normalised obligation verb (snake_case, e.g. must_maintain, liable_for, responsible_for, must_indemnify, recover_from, repair_and_maintain, at_owners_expense)
-- source_phrase: exact verbatim quote from the document (keep it short — the relevant clause only)
-- confidence: 0.0–1.0
-- category: one of the 8 categories below
+THE 8 FIELDS:
 
-CATEGORIES — what triggers each one:
-- combustible_cladding: ACP, aluminium composite panel, cladding, fire remediation, fire safety order, fire risk material
-- building_defect: defect proceedings, water ingress, structural cracking, rectification works, building defect, latent defect
-- str_rules: Airbnb, short-term rental, transient accommodation, holiday letting, minimum lease term, vacation rental, hosted accommodation
-- maintenance_responsibility: waterproof membrane, repair and maintain, common property, owner responsibility, balcony, windows, pipes, drains, air conditioning, roof, facade, glazing, exclusive use
-- insurance_excess: insurance excess, originating lot, recoverable excess, indemnify, liable for excess, EV charger, electric vehicle charger, high-risk installation, insurance risk
-- special_levy: capital works fund, sinking fund, special levy, remediation levy, major works, extraordinary levy
-- mixed_use_occupancy: residential purposes only, commercial use, serviced apartment, hotel use, mixed use, change of use, occupancy restriction
-- pets: pet approval, companion animal, nuisance animal, restricted breed, pet keeping, animals
+1. combustible_cladding
+   Look for: ACP, aluminium composite panel, cladding, fire remediation, fire safety order, fire risk material, external cladding
 
-RESPONSIBILITY SIGNALS — use these to determine responsible_party:
-Owner signals: "owner responsible for", "must maintain", "at the owner's expense", "must indemnify", "liable for", "serving the lot", "occupier must", "lessee shall"
-Strata signals: "owners corporation responsible", "common property", "body corporate responsible", "strata must maintain", "committee shall"
+2. building_defect
+   Look for: defect proceedings, water ingress, structural cracking, rectification works, building defect, latent defect, building warranty
 
-HIGH-VALUE ASSETS to normalise (use these exact snake_case names when you see them):
-waterproof_membrane, balcony, windows, glazing, pipes, drains, air_conditioning, roof, facade, cladding, exclusive_use_area, utility_infrastructure, common_property, structural_walls, ev_charger, car_park, lift, fire_safety_system
+3. str_rules
+   Look for: Airbnb, short-term rental, transient accommodation, holiday letting, minimum lease term, vacation rental, hosted accommodation, minimum tenancy
+
+4. maintenance_responsibility
+   Look for: waterproof membrane, repair and maintain, balcony, windows, pipes, drains, air conditioning, roof, facade, glazing, exclusive use area, common property maintenance
+   This is the most important field — capture who is responsible for maintaining key building components
+
+5. insurance_excess
+   Look for: insurance excess, originating lot, recoverable excess, indemnify, liable for excess, EV charger, electric vehicle charger, high-risk installation, insurance risk increase
+   Capture anything that shifts insurance excess liability or increases insurance risk
+
+6. special_levy
+   Look for: capital works fund, sinking fund, special levy, remediation levy, major works, extraordinary levy, administrative fund
+
+7. mixed_use_occupancy
+   Look for: residential purposes only, commercial use, serviced apartment, hotel use, mixed use, change of use, occupancy restriction, permitted use
+
+8. pets
+   Look for: pet approval, companion animal, nuisance animal, restricted breed, pet keeping, animals permitted, no pets
 
 Return ONLY a JSON code block with no other text:
 \`\`\`json
-[
-  {
-    "asset": "waterproof_membrane",
-    "responsible_party": "lot_owner",
-    "obligation": "must_maintain",
-    "source_phrase": "The owner must maintain the waterproof membrane serving the lot",
-    "confidence": 0.91,
-    "category": "maintenance_responsibility"
-  }
-]
-\`\`\`
-
-Return [] if no relevant clauses are found. Do not include trivial or low-confidence (< 0.5) results.`;
+{
+  "combustible_cladding":      { "summary": "...", "confidence": 0.0, "responsible_party": "not_mentioned", "source_phrase": null },
+  "building_defect":           { "summary": "...", "confidence": 0.0, "responsible_party": "not_mentioned", "source_phrase": null },
+  "str_rules":                 { "summary": "...", "confidence": 0.0, "responsible_party": "not_mentioned", "source_phrase": null },
+  "maintenance_responsibility":{ "summary": "...", "confidence": 0.0, "responsible_party": "not_mentioned", "source_phrase": null },
+  "insurance_excess":          { "summary": "...", "confidence": 0.0, "responsible_party": "not_mentioned", "source_phrase": null },
+  "special_levy":              { "summary": "...", "confidence": 0.0, "responsible_party": "not_mentioned", "source_phrase": null },
+  "mixed_use_occupancy":       { "summary": "...", "confidence": 0.0, "responsible_party": "not_mentioned", "source_phrase": null },
+  "pets":                      { "summary": "...", "confidence": 0.0, "responsible_party": "not_mentioned", "source_phrase": null }
+}
+\`\`\``;
 
 function buildUserPrompt(docType: string, text?: string): string {
   return `Document type: ${docType}
 
-Extract all liability triplets from this strata document. Focus on clauses that clearly allocate responsibility between lot owners and the strata/owners corporation.
+Extract all 8 liability fields from this strata document.
 ${text ? `\nDocument text:\n${text.slice(0, 12000)}` : ""}`;
 }
 
-function parseResponse(text: string): LiabilityTriplet[] {
+function parseResponse(text: string): LiabilityExtraction | null {
   try {
     const match = text.match(/```json\s*([\s\S]*?)```/);
-    const raw = match ? match[1] : text.match(/\[[\s\S]*\]/)?.[0];
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    const raw = match ? match[1] : text.match(/\{[\s\S]*\}/)?.[0];
+    if (!raw) return null;
+    return JSON.parse(raw) as LiabilityExtraction;
   } catch {
-    return [];
+    return null;
   }
 }
 
 export async function extractLiability(
   doc: { id: string; type: string; extracted_text?: string | null; storage_path?: string | null },
   supabase: SupabaseClient
-): Promise<LiabilityTriplet[]> {
+): Promise<LiabilityExtraction | null> {
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
   try {
@@ -101,7 +106,7 @@ export async function extractLiability(
         .from("property-documents")
         .download(doc.storage_path);
 
-      if (!fileData) return [];
+      if (!fileData) return null;
 
       const buffer = Buffer.from(await fileData.arrayBuffer());
       const base64 = buffer.toString("base64");
@@ -138,5 +143,5 @@ export async function extractLiability(
     console.error("[extract-liability]", e instanceof Error ? e.message : e);
   }
 
-  return [];
+  return null;
 }
