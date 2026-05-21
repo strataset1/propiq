@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { createServiceClient } from "@/lib/supabase/server";
 import { createBatch } from "@/lib/processing/batch";
 import { ProcessButton } from "./process-button";
+import { BackfillLiabilityButton } from "./backfill-button";
 import { DocumentRow } from "./document-row";
 import Anthropic from "@anthropic-ai/sdk";
 
@@ -314,35 +315,44 @@ async function processOne(docId: string): Promise<{ ok: true } | { ok: false; er
   return { ok: true };
 }
 
-async function backfillLiability(): Promise<{ ok: true; processed: number; skipped: number } | { ok: false; error: string }> {
+async function getPendingLiabilityIds(): Promise<string[]> {
   "use server";
-
   const supabase = createServiceClient();
 
-  // Find documents that are processed but have no liability extraction yet
   const { data: docs } = await supabase
     .from("documents")
-    .select("id, type, extracted_text, storage_path, property_id")
+    .select("id")
     .not("processed_at", "is", null)
     .not("property_id", "is", null);
 
-  if (!docs?.length) return { ok: true, processed: 0, skipped: 0, message: "No processed documents found." };
+  if (!docs?.length) return [];
 
-  // Find which property_ids already have liability extractions
   const { data: existing } = await supabase
     .from("strata_liability_extractions")
     .select("document_id");
 
   const doneIds = new Set((existing ?? []).map((r: any) => r.document_id));
-  const todo = docs.filter((d) => !doneIds.has(d.id));
+  return docs.filter((d) => !doneIds.has(d.id)).map((d) => d.id);
+}
 
-  if (!todo.length) return { ok: true, processed: 0, skipped: docs.length, message: `All ${docs.length} documents already have liability data.` };
+async function processLiabilityBatch(
+  ids: string[]
+): Promise<{ ok: true; processed: number } | { ok: false; error: string }> {
+  "use server";
+  const supabase = createServiceClient();
+
+  const { data: docs } = await supabase
+    .from("documents")
+    .select("id, type, extracted_text, storage_path, property_id")
+    .in("id", ids);
+
+  if (!docs?.length) return { ok: true, processed: 0 };
 
   const { extractLiability } = await import("@/lib/processing/extract-liability");
   const { saveLiabilityExtractions } = await import("@/lib/db/liability-extractions");
 
   let processed = 0;
-  for (const doc of todo) {
+  for (const doc of docs) {
     try {
       const extraction = await extractLiability(doc as any, supabase);
       if (extraction) {
@@ -354,8 +364,7 @@ async function backfillLiability(): Promise<{ ok: true; processed: number; skipp
     }
   }
 
-  const skipped = docs.length - todo.length;
-  return { ok: true, processed, skipped, message: `Done — ${processed} extracted, ${skipped} already had liability data.` };
+  return { ok: true, processed };
 }
 
 async function importGreencliff(): Promise<{ ok: true; queued: number } | { ok: false; error: string }> {
@@ -461,7 +470,7 @@ export default async function AdminQueuePage() {
           <p className="text-slate-400 text-sm mt-1">{docs?.length ?? 0} documents awaiting processing</p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <ProcessButton processAction={backfillLiability} label="Backfill Liability (existing docs)" />
+          <BackfillLiabilityButton getPending={getPendingLiabilityIds} processBatch={processLiabilityBatch} />
           <ProcessButton processAction={importGreencliff} label="Import Greencliff (123 docs)" />
           {docsWithText.length > 0 && <ProcessButton processAction={processQueue} label="Batch Process (text)" />}
           {docs && docs.length > 0 && <ProcessButton processAction={processAllVision} label={`Process All ${docs.length} (vision)`} />}
