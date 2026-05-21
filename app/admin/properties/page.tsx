@@ -10,6 +10,7 @@ export default async function PropertiesPage() {
     .select(`
       id,
       address_raw,
+      address_normalised,
       status,
       created_at,
       documents (
@@ -31,15 +32,19 @@ export default async function PropertiesPage() {
       )
     `)
     .order("created_at", { ascending: false })
-    .limit(200);
+    .limit(500);
 
-  const rows = (properties ?? []).map((p) => {
+  const allRows = (properties ?? []).map((p) => {
     const docs = (p.documents as any[]) ?? [];
     const bylaw = ((p.strata_bylaws as any[]) ?? [])[0] ?? null;
     const liability = ((p.strata_liability_extractions as any[]) ?? [])[0] ?? null;
     const processedDocs = docs.filter((d) => d.processed_at);
     return { ...p, docs, processedDocs, bylaw, liability };
   });
+
+  // Only show properties with a real extracted address (status = ready)
+  const rows = allRows.filter((p) => p.status === "ready" && p.address_normalised);
+  const pending = allRows.filter((p) => p.status !== "ready" || !p.address_normalised);
 
   const total = rows.length;
   const fullyProcessed = rows.filter((r) => r.bylaw).length;
@@ -53,7 +58,7 @@ export default async function PropertiesPage() {
       </div>
 
       {/* Summary stats */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-4 gap-4">
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
           <p className="text-slate-400 text-xs uppercase tracking-wide">Total properties</p>
           <p className="text-2xl font-bold text-white font-mono mt-1">{total}</p>
@@ -65,6 +70,10 @@ export default async function PropertiesPage() {
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
           <p className="text-slate-400 text-xs uppercase tracking-wide">Liability extracted</p>
           <p className="text-2xl font-bold text-sky-400 font-mono mt-1">{withLiability}</p>
+        </div>
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+          <p className="text-slate-400 text-xs uppercase tracking-wide">Pending processing</p>
+          <p className="text-2xl font-bold text-amber-400 font-mono mt-1">{pending.length}</p>
         </div>
       </div>
 
