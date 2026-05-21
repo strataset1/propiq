@@ -10,6 +10,13 @@ type ByLawAttribute = {
   legal: string | null;
 };
 
+type LiabilityField = {
+  summary: string | null;
+  confidence: number | null;
+  responsible_party: string | null;
+  source_phrase: string | null;
+};
+
 type LookupResult = {
   address_raw: string;
   address_normalised: string;
@@ -22,6 +29,16 @@ type LookupResult = {
   pets_allowed: ByLawAttribute;
   interior_renovations: ByLawAttribute;
   exterior_renovations: ByLawAttribute;
+  liability: {
+    combustible_cladding: LiabilityField;
+    building_defect: LiabilityField;
+    str_rules: LiabilityField;
+    maintenance_responsibility: LiabilityField;
+    insurance_excess: LiabilityField;
+    special_levy: LiabilityField;
+    mixed_use_occupancy: LiabilityField;
+    pets: LiabilityField;
+  } | null;
 };
 
 type Suggestion = {
@@ -85,6 +102,50 @@ function AttributeCard({ label, attr, stateLaw }: { label: string; attr: ByLawAt
         </p>
       )}
       {stateLaw && <StateLawPanel law={stateLaw} />}
+    </div>
+  );
+}
+
+const PARTY_COLOURS: Record<string, string> = {
+  lot_owner:    "text-amber-400",
+  strata:       "text-sky-400",
+  shared:       "text-purple-400",
+  not_mentioned: "text-slate-600",
+};
+
+const PARTY_LABELS: Record<string, string> = {
+  lot_owner:    "Lot owner",
+  strata:       "Strata",
+  shared:       "Shared",
+  not_mentioned: "Not mentioned",
+};
+
+function LiabilityCard({ label, field }: { label: string; field: LiabilityField }) {
+  const party = field.responsible_party ?? "not_mentioned";
+  return (
+    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="text-slate-300 text-sm font-medium">{label}</p>
+        <span className={`text-xs font-semibold ${PARTY_COLOURS[party] ?? "text-slate-400"}`}>
+          {PARTY_LABELS[party] ?? party}
+        </span>
+      </div>
+      {field.confidence !== null && (
+        <p className="text-slate-600 text-xs">
+          Confidence: <span className={field.confidence >= 0.7 ? "text-emerald-400" : field.confidence >= 0.5 ? "text-amber-400" : "text-red-400"}>
+            {Math.round(field.confidence * 100)}%
+          </span>
+        </p>
+      )}
+      {field.summary && <p className="text-slate-400 text-xs leading-relaxed">{field.summary}</p>}
+      {field.source_phrase && (
+        <p className="text-slate-600 text-xs italic border-l-2 border-slate-700 pl-3 leading-relaxed">
+          {field.source_phrase}
+        </p>
+      )}
+      {!field.summary && !field.source_phrase && (
+        <p className="text-slate-600 text-xs">Not mentioned in document</p>
+      )}
     </div>
   );
 }
@@ -166,19 +227,35 @@ export default function LookupPage() {
       return;
     }
 
-    const { data: bylaws } = await supabase
-      .from("strata_bylaws")
-      .select("*")
-      .eq("property_id", property.id)
-      .order("processed_at", { ascending: false })
-      .limit(1)
-      .single();
+    const [{ data: bylaws }, { data: liabilityRow }] = await Promise.all([
+      supabase
+        .from("strata_bylaws")
+        .select("*")
+        .eq("property_id", property.id)
+        .order("processed_at", { ascending: false })
+        .limit(1)
+        .single(),
+      supabase
+        .from("strata_liability_extractions")
+        .select("*")
+        .eq("property_id", property.id)
+        .order("processed_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
 
     if (!bylaws) {
       setError(`Property found (${property.address_raw}) but no processed documents yet.`);
       setLoading(false);
       return;
     }
+
+    const mkField = (prefix: string): LiabilityField => ({
+      summary: liabilityRow?.[`${prefix}_summary`] ?? null,
+      confidence: liabilityRow?.[`${prefix}_confidence`] ?? null,
+      responsible_party: liabilityRow?.[`${prefix}_responsible_party`] ?? null,
+      source_phrase: liabilityRow?.[`${prefix}_source`] ?? null,
+    });
 
     setResult({
       address_raw: property.address_raw,
@@ -192,6 +269,16 @@ export default function LookupPage() {
       pets_allowed: { value: bylaws.pets_allowed_value, detail: bylaws.pets_allowed_detail, legal: bylaws.pets_allowed_legal },
       interior_renovations: { value: bylaws.interior_renovations_value, detail: bylaws.interior_renovations_detail, legal: bylaws.interior_renovations_legal },
       exterior_renovations: { value: bylaws.exterior_renovations_value, detail: bylaws.exterior_renovations_detail, legal: bylaws.exterior_renovations_legal },
+      liability: liabilityRow ? {
+        combustible_cladding:       mkField("combustible_cladding"),
+        building_defect:            mkField("building_defect"),
+        str_rules:                  mkField("str_rules"),
+        maintenance_responsibility: mkField("maintenance_responsibility"),
+        insurance_excess:           mkField("insurance_excess"),
+        special_levy:               mkField("special_levy"),
+        mixed_use_occupancy:        mkField("mixed_use_occupancy"),
+        pets:                       mkField("pets"),
+      } : null,
     });
 
     setLoading(false);
@@ -295,6 +382,36 @@ export default function LookupPage() {
             <AttributeCard label="Interior renovations" attr={result.interior_renovations} stateLaw={stateLaws.interior_renovations} />
             <AttributeCard label="Exterior renovations" attr={result.exterior_renovations} stateLaw={stateLaws.exterior_renovations} />
           </div>
+
+          {/* Liability extraction fields */}
+          {result.liability ? (
+            <div className="space-y-3">
+              <h2 className="text-white font-medium text-sm">Liability Extraction</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {(
+                  [
+                    ["combustible_cladding",       "Combustible Cladding / Fire Risk"],
+                    ["building_defect",            "Building Defect / Litigation"],
+                    ["str_rules",                  "STR / Airbnb Rules"],
+                    ["maintenance_responsibility", "Maintenance Responsibility"],
+                    ["insurance_excess",           "Insurance Excess Recovery"],
+                    ["special_levy",               "Special Levy / Capital Works"],
+                    ["mixed_use_occupancy",        "Mixed-Use / Occupancy"],
+                    ["pets",                       "Pets / Animals"],
+                  ] as [keyof typeof result.liability, string][]
+                ).map(([key, label]) => {
+                  const f = result.liability![key];
+                  return (
+                    <LiabilityCard key={key} label={label} field={f} />
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
+              <p className="text-slate-500 text-sm">Liability extraction not yet run for this property</p>
+            </div>
+          )}
 
           {result.processed_at && (
             <p className="text-slate-600 text-xs">
