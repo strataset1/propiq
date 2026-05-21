@@ -43,8 +43,15 @@ export default async function PropertiesPage() {
   });
 
   // Only show properties with a real extracted address (status = ready)
-  const rows = allRows.filter((p) => p.status === "ready" && p.address_normalised);
-  const pending = allRows.filter((p) => p.status !== "ready" || !p.address_normalised);
+  // Only show properties that have at least one document and a real address
+  const rows = allRows
+    .filter((p) => p.status === "ready" && p.address_normalised && p.docs.length > 0)
+    .sort((a, b) => {
+      const aDate = a.bylaw?.processed_at ?? a.docs[0]?.processed_at ?? a.created_at;
+      const bDate = b.bylaw?.processed_at ?? b.docs[0]?.processed_at ?? b.created_at;
+      return new Date(bDate).getTime() - new Date(aDate).getTime();
+    });
+  const pending = allRows.filter((p) => p.status !== "ready" || !p.address_normalised || p.docs.length === 0);
 
   const total = rows.length;
   const fullyProcessed = rows.filter((r) => r.bylaw).length;
