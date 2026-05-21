@@ -129,11 +129,14 @@ export async function saveAllExtractions(
 
   if (e.address) {
     const normalised = await normaliseAddress(e.address);
-    await supabase.from("properties").update({
-      address_raw: e.address,
-      address_normalised: normalised,
-      status: "ready",
-    }).eq("id", propertyId);
+    await Promise.all([
+      supabase.from("properties").update({
+        address_raw: e.address,
+        address_normalised: normalised,
+        status: "ready",
+      }).eq("id", propertyId),
+      supabase.from("documents").update({ label: e.address }).eq("id", documentId),
+    ]);
   } else {
     await supabase.from("properties").update({ status: "ready" }).eq("id", propertyId);
   }

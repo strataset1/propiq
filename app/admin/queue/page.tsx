@@ -203,12 +203,9 @@ async function getPendingLiabilityIds(): Promise<string[]> {
 
   if (!docs?.length) return [];
 
-  const { data: existing } = await supabase
-    .from("strata_liability_extractions")
-    .select("document_id");
-
-  const doneIds = new Set((existing ?? []).map((r: any) => r.document_id));
-  return docs.filter((d) => !doneIds.has(d.id)).map((d) => d.id);
+  // Return ALL processed docs — saveAllExtractions uses upsert so re-running is safe.
+  // The old separate extractor left rows with null summaries; re-extracting fixes them.
+  return docs.map((d) => d.id);
 }
 
 async function processLiabilityBatch(
