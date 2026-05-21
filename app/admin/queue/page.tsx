@@ -326,7 +326,7 @@ async function backfillLiability(): Promise<{ ok: true; processed: number; skipp
     .not("processed_at", "is", null)
     .not("property_id", "is", null);
 
-  if (!docs?.length) return { ok: true, processed: 0, skipped: 0 };
+  if (!docs?.length) return { ok: true, processed: 0, skipped: 0, message: "No processed documents found." };
 
   // Find which property_ids already have liability extractions
   const { data: existing } = await supabase
@@ -336,7 +336,7 @@ async function backfillLiability(): Promise<{ ok: true; processed: number; skipp
   const doneIds = new Set((existing ?? []).map((r: any) => r.document_id));
   const todo = docs.filter((d) => !doneIds.has(d.id));
 
-  if (!todo.length) return { ok: true, processed: 0, skipped: docs.length };
+  if (!todo.length) return { ok: true, processed: 0, skipped: docs.length, message: `All ${docs.length} documents already have liability data.` };
 
   const { extractLiability } = await import("@/lib/processing/extract-liability");
   const { saveLiabilityExtractions } = await import("@/lib/db/liability-extractions");
@@ -354,7 +354,8 @@ async function backfillLiability(): Promise<{ ok: true; processed: number; skipp
     }
   }
 
-  return { ok: true, processed, skipped: docs.length - todo.length };
+  const skipped = docs.length - todo.length;
+  return { ok: true, processed, skipped, message: `Done — ${processed} extracted, ${skipped} already had liability data.` };
 }
 
 async function importGreencliff(): Promise<{ ok: true; queued: number } | { ok: false; error: string }> {
