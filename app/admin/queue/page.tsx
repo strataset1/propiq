@@ -314,6 +314,49 @@ async function processOne(docId: string): Promise<{ ok: true } | { ok: false; er
   return { ok: true };
 }
 
+async function backfillLiability(): Promise<{ ok: true; processed: number; skipped: number } | { ok: false; error: string }> {
+  "use server";
+
+  const supabase = createServiceClient();
+
+  // Find documents that are processed but have no liability extraction yet
+  const { data: docs } = await supabase
+    .from("documents")
+    .select("id, type, extracted_text, storage_path, property_id")
+    .not("processed_at", "is", null)
+    .not("property_id", "is", null);
+
+  if (!docs?.length) return { ok: true, processed: 0, skipped: 0 };
+
+  // Find which property_ids already have liability extractions
+  const { data: existing } = await supabase
+    .from("strata_liability_extractions")
+    .select("document_id");
+
+  const doneIds = new Set((existing ?? []).map((r: any) => r.document_id));
+  const todo = docs.filter((d) => !doneIds.has(d.id));
+
+  if (!todo.length) return { ok: true, processed: 0, skipped: docs.length };
+
+  const { extractLiability } = await import("@/lib/processing/extract-liability");
+  const { saveLiabilityExtractions } = await import("@/lib/db/liability-extractions");
+
+  let processed = 0;
+  for (const doc of todo) {
+    try {
+      const extraction = await extractLiability(doc as any, supabase);
+      if (extraction) {
+        await saveLiabilityExtractions(doc.property_id!, doc.id, extraction, supabase);
+        processed++;
+      }
+    } catch (e) {
+      console.error("[backfill-liability]", doc.id, e instanceof Error ? e.message : e);
+    }
+  }
+
+  return { ok: true, processed, skipped: docs.length - todo.length };
+}
+
 async function importGreencliff(): Promise<{ ok: true; queued: number } | { ok: false; error: string }> {
   "use server";
 
@@ -416,7 +459,8 @@ export default async function AdminQueuePage() {
           <h1 className="text-xl font-semibold text-white">Processing Queue</h1>
           <p className="text-slate-400 text-sm mt-1">{docs?.length ?? 0} documents awaiting processing</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <ProcessButton processAction={backfillLiability} label="Backfill Liability (existing docs)" />
           <ProcessButton processAction={importGreencliff} label="Import Greencliff (123 docs)" />
           {docsWithText.length > 0 && <ProcessButton processAction={processQueue} label="Batch Process (text)" />}
           {docs && docs.length > 0 && <ProcessButton processAction={processAllVision} label={`Process All ${docs.length} (vision)`} />}
