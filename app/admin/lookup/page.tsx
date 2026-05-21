@@ -43,7 +43,7 @@ type LookupResult = {
 
 type Suggestion = {
   id: string;
-  address_normalised: string;
+  address_normalised: string | null;
 };
 
 function toTitleCase(str: string): string {
@@ -285,13 +285,13 @@ export default function LookupPage() {
                   type="button"
                   onMouseDown={(e) => {
                     e.preventDefault();
-                    setAddress(toTitleCase(s.address_normalised));
+                    setAddress(toTitleCase(s.address_normalised ?? ""));
                     setShowSuggestions(false);
-                    handleSearch(s.id, s.address_normalised);
+                    handleSearch(s.id, s.address_normalised ?? undefined);
                   }}
                   className="w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
                 >
-                  {toTitleCase(s.address_normalised)}
+                  {toTitleCase(s.address_normalised ?? "")}
                 </button>
               ))}
             </div>

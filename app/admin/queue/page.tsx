@@ -6,76 +6,8 @@ import { ProcessButton } from "./process-button";
 import { BackfillLiabilityButton } from "./backfill-button";
 import { DocumentRow } from "./document-row";
 import Anthropic from "@anthropic-ai/sdk";
-
-const SYSTEM_PROMPT = `You are a property document analyst specialising in Australian strata by-laws and property reports.
-Extract the following attributes from the document. For each attribute respond with:
-- value: "yes", "no", or "maybe"
-- detail: brief plain-English note (1-2 sentences, or null if not mentioned)
-- legal_summary: the exact by-law clause or legal language verbatim, or null if not present`;
-
-const USER_PROMPT = (docType: string, text?: string) => `Document type: ${docType}
-
-Extract these attributes and return ONLY a JSON code block with no other text:
-
-\`\`\`json
-{
-  "address": "full street address of the property e.g. 12 Smith St, Newtown NSW 2042, or null if not found",
-  "document_date": "YYYY-MM-DD or null if not found",
-  "short_term_rental": { "value": "yes|no|maybe", "detail": "...", "legal_summary": "..." },
-  "pets_allowed": { "value": "yes|no|maybe", "detail": "...", "legal_summary": "..." },
-  "interior_renovations": { "value": "yes|no|maybe", "detail": "...", "legal_summary": "..." },
-  "exterior_renovations": { "value": "yes|no|maybe", "detail": "...", "legal_summary": "..." },
-  "confidence": 0.0
-}
-\`\`\`
-
-For address: extract the full street address of the specific property or building this document relates to. Include street number, street name, suburb, state and postcode if present. Return null if no specific address is found.
-For document_date: look for the date the by-law was registered, adopted, or last amended. Return in YYYY-MM-DD format, or null if not present.
-${text ? `\nDocument text:\n${text.slice(0, 8000)}` : "\nExtract from the attached PDF document."}`;
-
-async function saveExtraction(docId: string, propertyId: string, text: string) {
-  const supabase = createServiceClient();
-  const match = text.match(/```json\s*([\s\S]*?)```/) ?? [null, text.match(/\{[\s\S]*\}/)?.[0]];
-  const raw = match[1];
-  if (!raw) throw new Error("Unparseable response");
-  const extraction = JSON.parse(raw);
-
-  await supabase.from("strata_bylaws").upsert({
-    document_id: docId,
-    property_id: propertyId,
-    document_date: extraction.document_date ?? null,
-    short_term_rental_value: extraction.short_term_rental?.value,
-    short_term_rental_detail: extraction.short_term_rental?.detail,
-    short_term_rental_legal: extraction.short_term_rental?.legal_summary,
-    pets_allowed_value: extraction.pets_allowed?.value,
-    pets_allowed_detail: extraction.pets_allowed?.detail,
-    pets_allowed_legal: extraction.pets_allowed?.legal_summary,
-    interior_renovations_value: extraction.interior_renovations?.value,
-    interior_renovations_detail: extraction.interior_renovations?.detail,
-    interior_renovations_legal: extraction.interior_renovations?.legal_summary,
-    exterior_renovations_value: extraction.exterior_renovations?.value,
-    exterior_renovations_detail: extraction.exterior_renovations?.detail,
-    exterior_renovations_legal: extraction.exterior_renovations?.legal_summary,
-    confidence: extraction.confidence,
-    model_version: "claude-sonnet-4-6",
-    processed_at: new Date().toISOString(),
-  });
-
-  await supabase.from("documents").update({ processed_at: new Date().toISOString() }).eq("id", docId);
-
-  // If Claude extracted a specific address, update the property record
-  if (extraction.address) {
-    const { normaliseAddress } = await import("@/lib/utils/address");
-    const normalised = await normaliseAddress(extraction.address);
-    await supabase.from("properties").update({
-      address_raw: extraction.address,
-      address_normalised: normalised,
-      status: "ready",
-    }).eq("id", propertyId);
-  } else {
-    await supabase.from("properties").update({ status: "ready" }).eq("id", propertyId);
-  }
-}
+import { extractCombined, COMBINED_SYSTEM_PROMPT, buildCombinedPrompt, COMBINED_MODEL } from "@/lib/processing/extract-combined";
+import { saveAllExtractions } from "@/lib/db/liability-extractions";
 
 async function processAllVision(): Promise<{ ok: true; queued: number; batchId: string } | { ok: false; error: string }> {
   "use server";
@@ -101,15 +33,15 @@ async function processAllVision(): Promise<{ ok: true; queued: number; batchId: 
     return {
       custom_id: doc.id,
       params: {
-        model: "claude-sonnet-4-6" as const,
-        max_tokens: 2048,
-        system: SYSTEM_PROMPT,
+        model: COMBINED_MODEL,
+        max_tokens: 4096,
+        system: COMBINED_SYSTEM_PROMPT,
         betas: ["pdfs-2024-09-25"] as string[],
         messages: [{
           role: "user" as const,
           content: [
             { type: "document" as const, source: { type: "url" as const, url: signed.signedUrl } },
-            { type: "text" as const, text: USER_PROMPT(doc.type) },
+            { type: "text" as const, text: buildCombinedPrompt(doc.type) },
           ],
         }],
       },
@@ -248,68 +180,12 @@ async function processOne(docId: string): Promise<{ ok: true } | { ok: false; er
 
   if (!doc) return { ok: false, error: "Document not found" };
 
-  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  let responseText: string;
-
   try {
-    if (doc.storage_path) {
-      const { data: fileData, error: dlError } = await supabase.storage
-        .from("property-documents")
-        .download(doc.storage_path);
-
-      if (dlError || !fileData) return { ok: false, error: "Could not download PDF from storage" };
-
-      const buffer = Buffer.from(await fileData.arrayBuffer());
-      const base64 = buffer.toString("base64");
-
-      const message = await anthropic.beta.messages.create({
-        model: "claude-sonnet-4-6",
-        max_tokens: 2048,
-        system: SYSTEM_PROMPT,
-        betas: ["pdfs-2024-09-25"],
-        messages: [{
-          role: "user",
-          content: [
-            {
-              type: "document",
-              source: { type: "base64", media_type: "application/pdf", data: base64 },
-            },
-            { type: "text", text: USER_PROMPT(doc.type) },
-          ],
-        }],
-      });
-      responseText = message.content[0].type === "text" ? message.content[0].text : "";
-
-    } else if (doc.extracted_text) {
-      const message = await anthropic.messages.create({
-        model: "claude-sonnet-4-6",
-        max_tokens: 1024,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: "user", content: USER_PROMPT(doc.type, doc.extracted_text) }],
-      });
-      responseText = message.content[0].type === "text" ? message.content[0].text : "";
-
-    } else {
-      return { ok: false, error: "No PDF or extracted text available" };
-    }
+    const extraction = await extractCombined(doc, supabase);
+    if (!extraction) return { ok: false, error: "Extraction returned null — no PDF or text available" };
+    await saveAllExtractions(doc.property_id, docId, extraction, supabase);
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Anthropic API error" };
-  }
-
-  try {
-    await saveExtraction(docId, doc.property_id, responseText);
-  } catch (e) {
-    return { ok: false, error: `Failed to save: ${e instanceof Error ? e.message : "unknown"}` };
-  }
-
-  // Run liability extraction as a second pass (non-fatal)
-  try {
-    const { extractLiability } = await import("@/lib/processing/extract-liability");
-    const { saveLiabilityExtractions } = await import("@/lib/db/liability-extractions");
-    const extraction = await extractLiability(doc, supabase);
-    if (extraction) await saveLiabilityExtractions(doc.property_id, docId, extraction, supabase);
-  } catch (e) {
-    console.error("[liability extraction]", e instanceof Error ? e.message : e);
   }
 
   return { ok: true };
@@ -348,19 +224,16 @@ async function processLiabilityBatch(
 
   if (!docs?.length) return { ok: true, processed: 0 };
 
-  const { extractLiability } = await import("@/lib/processing/extract-liability");
-  const { saveLiabilityExtractions } = await import("@/lib/db/liability-extractions");
-
   let processed = 0;
   for (const doc of docs) {
     try {
-      const extraction = await extractLiability(doc as any, supabase);
+      const extraction = await extractCombined(doc as any, supabase);
       if (extraction) {
-        await saveLiabilityExtractions(doc.property_id!, doc.id, extraction, supabase);
+        await saveAllExtractions(doc.property_id!, doc.id, extraction, supabase);
         processed++;
       }
     } catch (e) {
-      console.error("[backfill-liability]", doc.id, e instanceof Error ? e.message : e);
+      console.error("[backfill]", doc.id, e instanceof Error ? e.message : e);
     }
   }
 

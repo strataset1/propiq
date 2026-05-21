@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { LiabilityExtraction } from "@/lib/processing/extract-liability";
+import type { CombinedExtraction } from "@/lib/processing/extract-combined";
+import { normaliseAddress } from "@/lib/utils/address";
 
 export async function saveLiabilityExtractions(
   propertyId: string,
@@ -54,6 +56,87 @@ export async function saveLiabilityExtractions(
 
     processed_at: new Date().toISOString(),
   }, { onConflict: "document_id" });
+}
+
+export async function saveAllExtractions(
+  propertyId: string,
+  documentId: string,
+  e: CombinedExtraction,
+  supabase: SupabaseClient
+): Promise<void> {
+  const now = new Date().toISOString();
+
+  await Promise.all([
+    supabase.from("strata_bylaws").upsert({
+      document_id: documentId,
+      property_id: propertyId,
+      document_date: e.document_date ?? null,
+      short_term_rental_value: e.short_term_rental?.value,
+      short_term_rental_detail: e.short_term_rental?.detail,
+      short_term_rental_legal: e.short_term_rental?.legal_summary,
+      pets_allowed_value: e.pets_allowed?.value,
+      pets_allowed_detail: e.pets_allowed?.detail,
+      pets_allowed_legal: e.pets_allowed?.legal_summary,
+      interior_renovations_value: e.interior_renovations?.value,
+      interior_renovations_detail: e.interior_renovations?.detail,
+      interior_renovations_legal: e.interior_renovations?.legal_summary,
+      exterior_renovations_value: e.exterior_renovations?.value,
+      exterior_renovations_detail: e.exterior_renovations?.detail,
+      exterior_renovations_legal: e.exterior_renovations?.legal_summary,
+      confidence: e.confidence,
+      model_version: "claude-sonnet-4-6",
+      processed_at: now,
+    }),
+    supabase.from("strata_liability_extractions").upsert({
+      document_id: documentId,
+      property_id: propertyId,
+      combustible_cladding_summary:          e.combustible_cladding.summary,
+      combustible_cladding_confidence:        e.combustible_cladding.confidence,
+      combustible_cladding_responsible_party: e.combustible_cladding.responsible_party,
+      combustible_cladding_source:            e.combustible_cladding.source_phrase,
+      building_defect_summary:               e.building_defect.summary,
+      building_defect_confidence:             e.building_defect.confidence,
+      building_defect_responsible_party:      e.building_defect.responsible_party,
+      building_defect_source:                 e.building_defect.source_phrase,
+      str_rules_summary:                     e.str_rules.summary,
+      str_rules_confidence:                   e.str_rules.confidence,
+      str_rules_responsible_party:            e.str_rules.responsible_party,
+      str_rules_source:                       e.str_rules.source_phrase,
+      maintenance_responsibility_summary:          e.maintenance_responsibility.summary,
+      maintenance_responsibility_confidence:        e.maintenance_responsibility.confidence,
+      maintenance_responsibility_responsible_party: e.maintenance_responsibility.responsible_party,
+      maintenance_responsibility_source:            e.maintenance_responsibility.source_phrase,
+      insurance_excess_summary:              e.insurance_excess.summary,
+      insurance_excess_confidence:            e.insurance_excess.confidence,
+      insurance_excess_responsible_party:     e.insurance_excess.responsible_party,
+      insurance_excess_source:                e.insurance_excess.source_phrase,
+      special_levy_summary:                  e.special_levy.summary,
+      special_levy_confidence:                e.special_levy.confidence,
+      special_levy_responsible_party:         e.special_levy.responsible_party,
+      special_levy_source:                    e.special_levy.source_phrase,
+      mixed_use_occupancy_summary:           e.mixed_use_occupancy.summary,
+      mixed_use_occupancy_confidence:         e.mixed_use_occupancy.confidence,
+      mixed_use_occupancy_responsible_party:  e.mixed_use_occupancy.responsible_party,
+      mixed_use_occupancy_source:             e.mixed_use_occupancy.source_phrase,
+      pets_summary:                          e.pets.summary,
+      pets_confidence:                        e.pets.confidence,
+      pets_responsible_party:                 e.pets.responsible_party,
+      pets_source:                            e.pets.source_phrase,
+      processed_at: now,
+    }, { onConflict: "document_id" }),
+    supabase.from("documents").update({ processed_at: now }).eq("id", documentId),
+  ]);
+
+  if (e.address) {
+    const normalised = await normaliseAddress(e.address);
+    await supabase.from("properties").update({
+      address_raw: e.address,
+      address_normalised: normalised,
+      status: "ready",
+    }).eq("id", propertyId);
+  } else {
+    await supabase.from("properties").update({ status: "ready" }).eq("id", propertyId);
+  }
 }
 
 export async function getLiabilityByProperty(
