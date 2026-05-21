@@ -71,10 +71,11 @@ export default function HomePage() {
     if (query.length < 3) { setSuggestions([]); return; }
     debounceRef.current = setTimeout(async () => {
       const isPostcode = /^\d{4}$/.test(query.trim());
+      const q = query.trim().replace(/,/g, " ").replace(/\s+/g, " ").trim();
       const { data } = await supabase
         .from("properties")
         .select("id, address_raw")
-        .or(`address_normalised.ilike.%${query}%,address_raw.ilike.%${query}%`)
+        .or(`address_normalised.ilike.%${q}%,address_raw.ilike.%${q}%`)
         .eq("status", "ready")
         .limit(isPostcode ? 20 : 6);
       setSuggestions(data ?? []);

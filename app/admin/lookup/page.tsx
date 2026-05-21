@@ -108,10 +108,11 @@ export default function LookupPage() {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
       const supabase = createClient();
+      const q = address.trim().replace(/,/g, " ").replace(/\s+/g, " ").trim();
       const { data } = await supabase
         .from("properties")
         .select("id, address_normalised")
-        .or(`address_normalised.ilike.%${address.trim()}%,address_raw.ilike.%${address.trim()}%`)
+        .or(`address_normalised.ilike.%${q}%,address_raw.ilike.%${q}%`)
         .not("address_normalised", "is", null)
         .limit(8);
       setSuggestions(data ?? []);
@@ -150,10 +151,11 @@ export default function LookupPage() {
         .single();
       property = data;
     } else {
+      const q = searchAddress.replace(/,/g, " ").replace(/\s+/g, " ").trim();
       const { data } = await supabase
         .from("properties")
         .select("id, address_raw, address_normalised, status")
-        .or(`address_normalised.ilike.%${searchAddress}%,address_raw.ilike.%${searchAddress}%`)
+        .or(`address_normalised.ilike.%${q}%,address_raw.ilike.%${q}%`)
         .limit(1);
       property = data?.[0] ?? null;
     }
