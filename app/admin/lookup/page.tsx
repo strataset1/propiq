@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { STATE_LAWS, detectState, type StateLawEntry } from "@/lib/state-laws";
+import { searchProperties, lookupProperty, lookupByAddress } from "./actions";
 
 type ByLawAttribute = {
   value: string | null;
@@ -168,15 +168,8 @@ export default function LookupPage() {
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
-      const supabase = createClient();
-      const q = address.trim().replace(/,/g, " ").replace(/\s+/g, " ").trim();
-      const { data } = await supabase
-        .from("properties")
-        .select("id, address_normalised")
-        .or(`address_normalised.ilike.%${q}%,address_raw.ilike.%${q}%`)
-        .not("address_normalised", "is", null)
-        .limit(8);
-      setSuggestions(data ?? []);
+      const data = await searchProperties(address.trim());
+      setSuggestions(data);
       setShowSuggestions(true);
     }, 250);
   }, [address]);
@@ -200,25 +193,23 @@ export default function LookupPage() {
     setError("");
     setResult(null);
 
-    const supabase = createClient();
-
     let property: { id: string; address_raw: string; address_normalised: string | null; status: string } | null = null;
+    let bylaws: any = null;
+    let liabilityRow: any = null;
 
     if (propertyId) {
-      const { data } = await supabase
-        .from("properties")
-        .select("id, address_raw, address_normalised, status")
-        .eq("id", propertyId)
-        .single();
-      property = data;
+      const res = await lookupProperty(propertyId);
+      property = res.property;
+      bylaws = res.bylaws;
+      liabilityRow = res.liability;
     } else {
-      const q = searchAddress.replace(/,/g, " ").replace(/\s+/g, " ").trim();
-      const { data } = await supabase
-        .from("properties")
-        .select("id, address_raw, address_normalised, status")
-        .or(`address_normalised.ilike.%${q}%,address_raw.ilike.%${q}%`)
-        .limit(1);
-      property = data?.[0] ?? null;
+      const found = await lookupByAddress(searchAddress);
+      if (found) {
+        const res = await lookupProperty(found.id);
+        property = res.property;
+        bylaws = res.bylaws;
+        liabilityRow = res.liability;
+      }
     }
 
     if (!property) {
@@ -226,23 +217,6 @@ export default function LookupPage() {
       setLoading(false);
       return;
     }
-
-    const [{ data: bylaws }, { data: liabilityRow }] = await Promise.all([
-      supabase
-        .from("strata_bylaws")
-        .select("*")
-        .eq("property_id", property.id)
-        .order("processed_at", { ascending: false })
-        .limit(1)
-        .single(),
-      supabase
-        .from("strata_liability_extractions")
-        .select("*")
-        .eq("property_id", property.id)
-        .order("processed_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-    ]);
 
     if (!bylaws) {
       setError(`Property found (${property.address_raw}) but no processed documents yet.`);
