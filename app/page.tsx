@@ -6,6 +6,12 @@ import { createClient } from "@/lib/supabase/client";
 
 type Suggestion = { id: string; address_raw: string };
 
+type LiabilityField = {
+  summary: string | null;
+  responsible_party: "lot_owner" | "strata" | "shared" | "not_mentioned" | null;
+  confidence: number | null;
+};
+
 type ByLawResult = {
   propertyId: string;
   address: string;
@@ -14,28 +20,51 @@ type ByLawResult = {
     pets_allowed_value: string | null;
     short_term_rental_value: string | null;
     interior_renovations_value: string | null;
+    exterior_renovations_value: string | null;
     confidence: number | null;
+  } | null;
+  liability: {
+    combustible_cladding: LiabilityField;
+    building_defect: LiabilityField;
+    str_rules: LiabilityField;
+    maintenance_responsibility: LiabilityField;
+    insurance_excess: LiabilityField;
+    special_levy: LiabilityField;
+    mixed_use_occupancy: LiabilityField;
+    pets: LiabilityField;
   } | null;
 };
 
-const VALUE_CONFIG: Record<string, { label: string; bg: string; text: string; dot: string }> = {
-  yes:   { label: "Allowed",      bg: "bg-emerald-500/10", text: "text-emerald-400", dot: "bg-emerald-400" },
-  no:    { label: "Not allowed",  bg: "bg-red-500/10",     text: "text-red-400",     dot: "bg-red-400"     },
-  maybe: { label: "Conditional",  bg: "bg-amber-500/10",   text: "text-amber-400",   dot: "bg-amber-400"   },
+const VALUE_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
+  yes:   { label: "Allowed",     bg: "bg-emerald-500/10", text: "text-emerald-400" },
+  no:    { label: "Not allowed", bg: "bg-red-500/10",     text: "text-red-400"     },
+  maybe: { label: "Conditional", bg: "bg-amber-500/10",   text: "text-amber-400"   },
 };
 
-const FIELD_ICONS: Record<string, string> = {
-  "Pets": "🐾",
-  "Short-term rental": "🏠",
-  "Renovations": "🔨",
+const PARTY_CONFIG: Record<string, { label: string; color: string }> = {
+  lot_owner:    { label: "Lot owner",  color: "text-amber-400"   },
+  strata:       { label: "Strata",     color: "text-blue-400"    },
+  shared:       { label: "Shared",     color: "text-purple-400"  },
+  not_mentioned:{ label: "Not mentioned", color: "text-slate-500" },
 };
 
-function ValuePill({ value, field }: { value: string | null; field: string }) {
+const LIABILITY_LABELS: Record<string, { label: string; icon: string }> = {
+  combustible_cladding:      { label: "Combustible cladding",     icon: "🔥" },
+  building_defect:           { label: "Building defects",         icon: "🏗️" },
+  str_rules:                 { label: "STR rules",                icon: "🏠" },
+  maintenance_responsibility:{ label: "Maintenance responsibility",icon: "🔧" },
+  insurance_excess:          { label: "Insurance excess",         icon: "🛡️" },
+  special_levy:              { label: "Special levy",             icon: "💰" },
+  mixed_use_occupancy:       { label: "Use restrictions",         icon: "🏢" },
+  pets:                      { label: "Pets",                     icon: "🐾" },
+};
+
+function ValuePill({ value, field, icon }: { value: string | null; field: string; icon: string }) {
   if (!value) return null;
-  const cfg = VALUE_CONFIG[value] ?? { label: value, bg: "bg-slate-800", text: "text-slate-400", dot: "bg-slate-400" };
+  const cfg = VALUE_CONFIG[value] ?? { label: value, bg: "bg-slate-800", text: "text-slate-400" };
   return (
-    <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${cfg.bg}`}>
-      <span className="text-base">{FIELD_ICONS[field] ?? "•"}</span>
+    <div className={`flex items-center gap-2 px-3 py-2.5 rounded-lg ${cfg.bg}`}>
+      <span className="text-base">{icon}</span>
       <div>
         <p className="text-slate-400 text-xs">{field}</p>
         <p className={`text-sm font-medium ${cfg.text}`}>{cfg.label}</p>
@@ -44,14 +73,38 @@ function ValuePill({ value, field }: { value: string | null; field: string }) {
   );
 }
 
+function LiabilityRow({ fieldKey, data }: { fieldKey: string; data: LiabilityField }) {
+  const meta = LIABILITY_LABELS[fieldKey];
+  const party = data.responsible_party ? PARTY_CONFIG[data.responsible_party] : null;
+  const isNotMentioned = !data.responsible_party || data.responsible_party === "not_mentioned";
+
+  return (
+    <div className="flex items-start justify-between gap-4 py-3 border-b border-slate-800 last:border-0">
+      <div className="flex items-start gap-2.5 min-w-0">
+        <span className="text-base mt-0.5 shrink-0">{meta?.icon ?? "•"}</span>
+        <div className="min-w-0">
+          <p className="text-slate-300 text-sm font-medium">{meta?.label ?? fieldKey}</p>
+          {!isNotMentioned && data.summary && (
+            <p className="text-slate-500 text-xs mt-0.5 leading-relaxed line-clamp-2">{data.summary}</p>
+          )}
+          {isNotMentioned && (
+            <p className="text-slate-600 text-xs mt-0.5">Not mentioned in document</p>
+          )}
+        </div>
+      </div>
+      {party && !isNotMentioned && (
+        <span className={`text-xs font-medium shrink-0 mt-0.5 ${party.color}`}>{party.label}</span>
+      )}
+    </div>
+  );
+}
+
 function SkeletonCard() {
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 animate-pulse">
       <div className="h-4 bg-slate-800 rounded w-2/3 mb-3" />
-      <div className="flex gap-3">
-        <div className="h-12 w-28 bg-slate-800 rounded-lg" />
-        <div className="h-12 w-28 bg-slate-800 rounded-lg" />
-        <div className="h-12 w-28 bg-slate-800 rounded-lg" />
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[1,2,3,4].map(i => <div key={i} className="h-12 bg-slate-800 rounded-lg" />)}
       </div>
     </div>
   );
@@ -88,10 +141,10 @@ export default function HomePage() {
     setLoading(true);
     setResult(null);
 
-    const [{ data: bylaws }, { data: docs }] = await Promise.all([
+    const [{ data: bylaws }, { data: docs }, { data: liab }] = await Promise.all([
       supabase
         .from("strata_bylaws")
-        .select("pets_allowed_value, short_term_rental_value, interior_renovations_value, confidence")
+        .select("pets_allowed_value, short_term_rental_value, interior_renovations_value, exterior_renovations_value, confidence")
         .eq("property_id", p.id)
         .order("processed_at", { ascending: false })
         .limit(1)
@@ -102,14 +155,27 @@ export default function HomePage() {
         .eq("property_id", p.id)
         .not("processed_at", "is", null)
         .limit(10),
+      supabase
+        .from("strata_liability_extractions")
+        .select("combustible_cladding_summary, combustible_cladding_responsible_party, combustible_cladding_confidence, building_defect_summary, building_defect_responsible_party, building_defect_confidence, str_rules_summary, str_rules_responsible_party, str_rules_confidence, maintenance_responsibility_summary, maintenance_responsibility_responsible_party, maintenance_responsibility_confidence, insurance_excess_summary, insurance_excess_responsible_party, insurance_excess_confidence, special_levy_summary, special_levy_responsible_party, special_levy_confidence, mixed_use_occupancy_summary, mixed_use_occupancy_responsible_party, mixed_use_occupancy_confidence, pets_summary, pets_responsible_party, pets_confidence")
+        .eq("property_id", p.id)
+        .order("processed_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
     ]);
 
-    setResult({
-      propertyId: p.id,
-      address: p.address_raw,
-      documents: docs ?? [],
-      bylaws: bylaws ?? null,
-    });
+    const liability = liab ? {
+      combustible_cladding:      { summary: liab.combustible_cladding_summary,       responsible_party: liab.combustible_cladding_responsible_party as any,       confidence: liab.combustible_cladding_confidence },
+      building_defect:           { summary: liab.building_defect_summary,            responsible_party: liab.building_defect_responsible_party as any,            confidence: liab.building_defect_confidence },
+      str_rules:                 { summary: liab.str_rules_summary,                  responsible_party: liab.str_rules_responsible_party as any,                  confidence: liab.str_rules_confidence },
+      maintenance_responsibility:{ summary: liab.maintenance_responsibility_summary, responsible_party: liab.maintenance_responsibility_responsible_party as any, confidence: liab.maintenance_responsibility_confidence },
+      insurance_excess:          { summary: liab.insurance_excess_summary,           responsible_party: liab.insurance_excess_responsible_party as any,           confidence: liab.insurance_excess_confidence },
+      special_levy:              { summary: liab.special_levy_summary,               responsible_party: liab.special_levy_responsible_party as any,               confidence: liab.special_levy_confidence },
+      mixed_use_occupancy:       { summary: liab.mixed_use_occupancy_summary,        responsible_party: liab.mixed_use_occupancy_responsible_party as any,        confidence: liab.mixed_use_occupancy_confidence },
+      pets:                      { summary: liab.pets_summary,                       responsible_party: liab.pets_responsible_party as any,                       confidence: liab.pets_confidence },
+    } : null;
+
+    setResult({ propertyId: p.id, address: p.address_raw, documents: docs ?? [], bylaws: bylaws ?? null, liability });
     setLoading(false);
   }
 
@@ -154,11 +220,9 @@ export default function HomePage() {
 
       {/* Hero */}
       <div className="relative overflow-hidden">
-        {/* Subtle glow */}
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-amber-500/5 rounded-full blur-3xl" />
         </div>
-
         <div className="relative max-w-5xl mx-auto px-6 pt-24 pb-16 w-full">
           <div className="max-w-2xl">
             <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-full px-3 py-1 mb-6">
@@ -231,12 +295,8 @@ export default function HomePage() {
           <div className="space-y-4 max-w-2xl">
             <SkeletonCard />
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 animate-pulse">
-              <div className="flex items-center justify-between">
-                <div className="space-y-2">
-                  <div className="h-4 bg-slate-800 rounded w-48" />
-                  <div className="h-3 bg-slate-800 rounded w-24" />
-                </div>
-                <div className="h-9 w-36 bg-slate-800 rounded-lg" />
+              <div className="space-y-3">
+                {[1,2,3,4].map(i => <div key={i} className="h-10 bg-slate-800 rounded" />)}
               </div>
             </div>
           </div>
@@ -253,14 +313,27 @@ export default function HomePage() {
               <p className="text-slate-400 text-sm">{result.address}</p>
             </div>
 
-            {/* By-law summary */}
+            {/* By-law summary — 4 pills */}
             {result.bylaws && (
               <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
                 <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-3">By-law summary</p>
-                <div className="grid grid-cols-3 gap-3">
-                  <ValuePill value={result.bylaws.pets_allowed_value} field="Pets" />
-                  <ValuePill value={result.bylaws.short_term_rental_value} field="Short-term rental" />
-                  <ValuePill value={result.bylaws.interior_renovations_value} field="Renovations" />
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <ValuePill value={result.bylaws.pets_allowed_value}          field="Pets"                icon="🐾" />
+                  <ValuePill value={result.bylaws.short_term_rental_value}     field="Short-term rental"   icon="🏠" />
+                  <ValuePill value={result.bylaws.interior_renovations_value}  field="Interior reno"       icon="🔨" />
+                  <ValuePill value={result.bylaws.exterior_renovations_value}  field="Exterior reno"       icon="🏗️" />
+                </div>
+              </div>
+            )}
+
+            {/* Liability fields — 8 rows */}
+            {result.liability && (
+              <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Liability &amp; risk summary</p>
+                <div>
+                  {(Object.keys(LIABILITY_LABELS) as (keyof typeof result.liability)[]).map((key) => (
+                    <LiabilityRow key={key} fieldKey={key} data={result.liability![key]} />
+                  ))}
                 </div>
               </div>
             )}
