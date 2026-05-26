@@ -143,7 +143,7 @@ const SAMPLE_LIABILITY = [
   { icon: "🏗️", label: "Building defects"           },
 ];
 
-function SampleInsights({ propCount, docCount }: { propCount: number; docCount: number }) {
+function SampleInsights() {
   const VALUE_COLORS: Record<string, string> = {
     yes:   "text-emerald-400",
     no:    "text-red-400",
@@ -156,23 +156,7 @@ function SampleInsights({ propCount, docCount }: { propCount: number; docCount: 
   };
 
   return (
-    <div className="mt-10 space-y-5 max-w-2xl">
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
-        {[
-          { n: propCount.toLocaleString(), label: "Properties indexed" },
-          { n: docCount.toLocaleString(),  label: "Documents analysed" },
-          { n: "NSW · VIC · QLD",          label: "States covered"     },
-        ].map(({ n, label }) => (
-          <div key={label} className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 text-center">
-            <p className="text-white font-bold text-xl">{n}</p>
-            <p className="text-slate-500 text-xs mt-0.5">{label}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Sample card */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+    <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-2xl">
         <div className="px-5 pt-5 pb-3 border-b border-slate-800 flex items-center justify-between">
           <div>
             <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Example result</p>
@@ -220,7 +204,6 @@ function SampleInsights({ propCount, docCount }: { propCount: number; docCount: 
             </div>
           </div>
         </div>
-      </div>
     </div>
   );
 }
@@ -323,98 +306,112 @@ export default function HomePage() {
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-amber-500/5 rounded-full blur-3xl" />
         </div>
 
-        <div className="relative max-w-5xl mx-auto px-6 pt-20 pb-14 w-full">
-          <div className="max-w-2xl">
-            {/* Legitimacy badge */}
-            <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-3 py-1 mb-6">
-              <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full" />
-              <span className="text-emerald-400 text-xs font-medium">Official Australian strata records</span>
-            </div>
+        <div className="relative max-w-6xl mx-auto px-6 pt-20 pb-14 w-full">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
 
-            <h1 className="text-5xl sm:text-6xl font-bold text-white leading-tight mb-5">
-              Know the rules<br />
-              <span className="text-amber-400">before you sign the lease.</span>
-            </h1>
-            <p className="text-slate-300 text-xl mb-10 leading-relaxed">
-              Search any strata building in Australia to instantly see what&apos;s allowed — pets, short-term rentals, renovations — and download the original by-law document.
-            </p>
-
-            {/* Search */}
-            <div className="relative">
-              <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-                <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 111 11a6 6 0 0116 0z" />
-                </svg>
+            {/* Left — headline + search */}
+            <div>
+              <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-3 py-1 mb-6">
+                <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full" />
+                <span className="text-emerald-400 text-xs font-medium">Official Australian strata records</span>
               </div>
-              <input
-                ref={inputRef}
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onFocus={() => setFocused(true)}
-                onBlur={() => setTimeout(() => setFocused(false), 150)}
-                placeholder="Search by address, suburb or postcode…"
-                className="w-full bg-slate-900 border border-slate-700 hover:border-slate-600 focus:border-amber-500 text-white rounded-xl pl-10 pr-4 py-4 text-base placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition-colors shadow-lg"
-              />
 
-              {showDropdown && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-slate-900 border border-slate-700 rounded-xl overflow-hidden z-10 shadow-2xl">
-                  {/* Empty state — show examples */}
-                  {query.length === 0 && (
-                    <div className="px-4 py-3 border-b border-slate-800">
-                      <p className="text-slate-500 text-xs uppercase tracking-wide mb-2">Try searching for</p>
-                      {EXAMPLE_SEARCHES.map((ex) => (
-                        <button
-                          key={ex}
-                          onMouseDown={() => { setQuery(ex.replace(/^Try a postcode: /, "")); inputRef.current?.focus(); }}
-                          className="w-full text-left py-1.5 text-sm text-slate-400 hover:text-white transition-colors flex items-center gap-2"
-                        >
-                          <svg className="w-3 h-3 text-slate-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 111 11a6 6 0 0116 0z" />
-                          </svg>
-                          {ex}
-                        </button>
-                      ))}
+              <h1 className="text-5xl font-bold text-white leading-tight mb-5">
+                Know the rules<br />
+                <span className="text-amber-400">before you sign the lease.</span>
+              </h1>
+              <p className="text-slate-300 text-lg mb-10 leading-relaxed">
+                Search any strata building in Australia to instantly see what&apos;s allowed — pets, short-term rentals, renovations — and download the original by-law document.
+              </p>
+
+              {/* Search */}
+              <div className="relative">
+                <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                  <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 111 11a6 6 0 0116 0z" />
+                  </svg>
+                </div>
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  onFocus={() => setFocused(true)}
+                  onBlur={() => setTimeout(() => setFocused(false), 150)}
+                  placeholder="Search by address, suburb or postcode…"
+                  className="w-full bg-slate-900 border border-slate-700 hover:border-slate-600 focus:border-amber-500 text-white rounded-xl pl-10 pr-4 py-4 text-base placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition-colors shadow-lg"
+                />
+
+                {showDropdown && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-slate-900 border border-slate-700 rounded-xl overflow-hidden z-10 shadow-2xl">
+                    {query.length === 0 && (
+                      <div className="px-4 py-3 border-b border-slate-800">
+                        <p className="text-slate-500 text-xs uppercase tracking-wide mb-2">Try searching for</p>
+                        {EXAMPLE_SEARCHES.map((ex) => (
+                          <button
+                            key={ex}
+                            onMouseDown={() => { setQuery(ex.replace(/^Try a postcode: /, "")); inputRef.current?.focus(); }}
+                            className="w-full text-left py-1.5 text-sm text-slate-400 hover:text-white transition-colors flex items-center gap-2"
+                          >
+                            <svg className="w-3 h-3 text-slate-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 111 11a6 6 0 0116 0z" />
+                            </svg>
+                            {ex}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {notFound && query.length >= 3 && (
+                      <div className="px-4 py-4 text-center">
+                        <p className="text-slate-400 text-sm">No properties found for &quot;{query}&quot;</p>
+                        <p className="text-slate-600 text-xs mt-1">Our database is growing — try another address or suburb in NSW.</p>
+                      </div>
+                    )}
+                    {suggestions.map((s) => (
+                      <button
+                        key={s.id}
+                        onMouseDown={() => selectProperty(s)}
+                        className="w-full text-left px-4 py-3 text-sm text-white hover:bg-slate-800 transition-colors border-b border-slate-800 last:border-0 flex items-center gap-3"
+                      >
+                        <svg className="w-3.5 h-3.5 text-slate-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        {s.address_raw}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <p className="text-slate-500 text-sm mt-4">
+                Instant results · Original PDF included · NSW, VIC &amp; more
+              </p>
+
+              {/* Stats row below search on left */}
+              {stats && (
+                <div className="grid grid-cols-3 gap-3 mt-6">
+                  {[
+                    { n: stats.propertyCount.toLocaleString(), label: "Properties" },
+                    { n: stats.documentCount.toLocaleString(), label: "Documents"  },
+                    { n: "3",                                  label: "States"     },
+                  ].map(({ n, label }) => (
+                    <div key={label} className="bg-slate-900/60 border border-slate-800 rounded-xl p-3 text-center">
+                      <p className="text-white font-bold text-lg">{n}</p>
+                      <p className="text-slate-500 text-xs mt-0.5">{label}</p>
                     </div>
-                  )}
-
-                  {/* No results */}
-                  {notFound && query.length >= 3 && (
-                    <div className="px-4 py-4 text-center">
-                      <p className="text-slate-400 text-sm">No properties found for &quot;{query}&quot;</p>
-                      <p className="text-slate-600 text-xs mt-1">Our database is growing — try another address or suburb in NSW.</p>
-                    </div>
-                  )}
-
-                  {/* Results */}
-                  {suggestions.map((s) => (
-                    <button
-                      key={s.id}
-                      onMouseDown={() => selectProperty(s)}
-                      className="w-full text-left px-4 py-3 text-sm text-white hover:bg-slate-800 transition-colors border-b border-slate-800 last:border-0 flex items-center gap-3"
-                    >
-                      <svg className="w-3.5 h-3.5 text-slate-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                      {s.address_raw}
-                    </button>
                   ))}
                 </div>
               )}
             </div>
 
-            {/* Trust line */}
+            {/* Right — sample card (hidden on mobile, shown beside on desktop) */}
             {!result && !loading && (
-              <p className="text-slate-500 text-sm mt-4">
-                Instant results · Original PDF included · NSW, VIC &amp; more
-              </p>
+              <div className="hidden lg:block">
+                <SampleInsights />
+              </div>
             )}
 
-            {/* Stats + sample insights */}
-            {!result && !loading && stats && (
-              <SampleInsights propCount={stats.propertyCount} docCount={stats.documentCount} />
-            )}
           </div>
         </div>
       </div>
