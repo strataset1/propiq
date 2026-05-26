@@ -2,6 +2,15 @@
 
 import { createServiceClient } from "@/lib/supabase/server";
 
+export async function getStats() {
+  const supabase = createServiceClient();
+  const { count } = await supabase
+    .from("properties")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "ready");
+  return { propertyCount: count ?? 0 };
+}
+
 export async function getPropertyData(propertyId: string) {
   const supabase = createServiceClient();
 

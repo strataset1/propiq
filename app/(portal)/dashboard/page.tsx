@@ -17,12 +17,30 @@ export default async function DashboardPage() {
     .single();
 
   if (!org) {
+    async function signOut() {
+      "use server";
+      const s = await createClient();
+      await s.auth.signOut();
+      redirect("/login");
+    }
     return (
-      <div className="text-center py-24">
-        <p className="text-slate-400">
-          Your account isn&apos;t linked to an organisation yet.
-          Contact support to get set up.
-        </p>
+      <div className="text-center py-24 space-y-4">
+        <div className="w-12 h-12 bg-slate-800 rounded-full flex items-center justify-center mx-auto">
+          <svg className="w-6 h-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+          </svg>
+        </div>
+        <div>
+          <p className="text-white font-medium">Account not linked to an organisation</p>
+          <p className="text-slate-400 text-sm mt-1">
+            Email <a href="mailto:sales@strataset.com.au" className="text-amber-400 hover:underline">sales@strataset.com.au</a> to get API access set up.
+          </p>
+        </div>
+        <form action={signOut}>
+          <button type="submit" className="text-slate-500 hover:text-slate-300 text-sm transition-colors">
+            Sign out
+          </button>
+        </form>
       </div>
     );
   }

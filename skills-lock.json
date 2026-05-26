@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "skills": {
+    "firecrawl-build-interact": {
+      "source": "firecrawl/skills",
+      "sourceType": "github",
+      "skillPath": "skills/firecrawl-build-interact/SKILL.md",
+      "computedHash": "1826b289e3338a770113eccf9f148739cc26cc1ed7bcb1f74bd22b14ef71dc4f"
+    },
+    "firecrawl-build-onboarding": {
+      "source": "firecrawl/skills",
+      "sourceType": "github",
+      "skillPath": "skills/firecrawl-build-onboarding/SKILL.md",
+      "computedHash": "b9c320bc39b5a818e6bdf7f21fe9ef2b11806de854e12ac072574a887dd6cad5"
+    },
+    "firecrawl-build-scrape": {
+      "source": "firecrawl/skills",
+      "sourceType": "github",
+      "skillPath": "skills/firecrawl-build-scrape/SKILL.md",
+      "computedHash": "ef66697e5e590882729d8244c815019809c9269a4a1f7b1e1edbe9d559dc73a5"
+    },
+    "firecrawl-build-search": {
+      "source": "firecrawl/skills",
+      "sourceType": "github",
+      "skillPath": "skills/firecrawl-build-search/SKILL.md",
+      "computedHash": "efec1daca4fae5f6bedc029af00cadc71a99a9cf6c6f5924a57093fc9e64b98f"
+    }
+  }
+}

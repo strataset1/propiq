@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 const links = [
   { href: "/dashboard", label: "Dashboard" },
@@ -13,11 +14,20 @@ const links = [
 
 export function PortalNav() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  async function signOut() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+  }
 
   return (
     <nav className="border-b border-slate-800 bg-slate-950">
       <div className="max-w-5xl mx-auto px-6 flex items-center justify-between h-14">
-        <span className="text-white font-mono font-semibold text-sm">Strataset API</span>
+        <Link href="/" className="text-white font-mono font-semibold text-sm hover:text-slate-300 transition-colors">
+          Strataset API
+        </Link>
         <div className="flex items-center gap-1">
           {links.map((link) => (
             <Link
@@ -32,6 +42,12 @@ export function PortalNav() {
               {link.label}
             </Link>
           ))}
+          <button
+            onClick={signOut}
+            className="ml-3 px-3 py-1.5 rounded text-sm text-slate-500 hover:text-white hover:bg-slate-800 transition-colors border border-slate-800"
+          >
+            Sign out
+          </button>
         </div>
       </div>
     </nav>
