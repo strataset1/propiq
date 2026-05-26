@@ -90,13 +90,13 @@ function SampleInsights() {
 
         <div className="px-5 py-4 border-b border-slate-800">
           <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-3">By-law summary</p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 gap-2.5">
             {SAMPLE_PILLS.map((p) => (
-              <div key={p.field} className={`flex items-center gap-2 px-3 py-2.5 rounded-lg ${VALUE_BG[p.value]}`}>
-                <span className="text-base">{p.icon}</span>
-                <div>
+              <div key={p.field} className={`flex items-center gap-3 px-4 py-3 rounded-lg ${VALUE_BG[p.value]}`}>
+                <span className="text-lg shrink-0">{p.icon}</span>
+                <div className="min-w-0">
                   <p className="text-slate-400 text-xs">{p.field}</p>
-                  <p className={`text-sm font-semibold ${VALUE_COLORS[p.value]}`}>{p.label}</p>
+                  <p className={`text-sm font-semibold whitespace-nowrap ${VALUE_COLORS[p.value]}`}>{p.label}</p>
                 </div>
               </div>
             ))}
