@@ -276,7 +276,7 @@ export default function HomePage() {
           <div className="mt-4 space-y-2.5">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-slate-600 text-xs">Browse by state:</span>
-              {Object.keys(BROWSE).map((state) => (
+              {["ALL", ...Object.keys(BROWSE)].map((state) => (
                 <button
                   key={state}
                   onClick={() => toggleState(state)}
@@ -293,7 +293,7 @@ export default function HomePage() {
 
             {selectedState && (
               <div className="flex items-center gap-2 flex-wrap pl-0.5">
-                {BROWSE[selectedState].map((area) => (
+                {(selectedState === "ALL" ? Object.values(BROWSE).flat() : BROWSE[selectedState]).map((area) => (
                   <button
                     key={area.label}
                     onClick={() => browseArea(area.query)}
