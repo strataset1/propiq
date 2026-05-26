@@ -80,27 +80,41 @@ function ValuePill({ value, field, icon }: { value: string | null; field: string
 }
 
 function LiabilityRow({ fieldKey, data }: { fieldKey: string; data: LiabilityField }) {
+  const [expanded, setExpanded] = useState(false);
   const meta = LIABILITY_LABELS[fieldKey];
   const party = data.responsible_party ? PARTY_CONFIG[data.responsible_party] : null;
   const isNotMentioned = !data.responsible_party || data.responsible_party === "not_mentioned";
+  const hasLongSummary = data.summary && data.summary.length > 120;
 
   return (
-    <div className="flex items-start justify-between gap-4 py-3 border-b border-slate-800/60 last:border-0">
-      <div className="flex items-start gap-2.5 min-w-0">
-        <span className="text-base mt-0.5 shrink-0">{meta?.icon ?? "•"}</span>
-        <div className="min-w-0">
-          <p className="text-slate-200 text-sm font-medium">{meta?.label ?? fieldKey}</p>
-          {!isNotMentioned && data.summary && (
-            <p className="text-slate-500 text-xs mt-0.5 leading-relaxed line-clamp-2">{data.summary}</p>
-          )}
-          {isNotMentioned && (
-            <p className="text-slate-600 text-xs mt-0.5">Not mentioned in document</p>
-          )}
+    <div className="py-3 border-b border-slate-800/60 last:border-0">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start gap-2.5 min-w-0">
+          <span className="text-base mt-0.5 shrink-0">{meta?.icon ?? "•"}</span>
+          <div className="min-w-0">
+            <p className="text-slate-200 text-sm font-medium">{meta?.label ?? fieldKey}</p>
+            {!isNotMentioned && data.summary && (
+              <p className={`text-slate-500 text-xs mt-0.5 leading-relaxed ${expanded ? "" : "line-clamp-2"}`}>
+                {data.summary}
+              </p>
+            )}
+            {!isNotMentioned && hasLongSummary && (
+              <button
+                onClick={() => setExpanded(e => !e)}
+                className="text-amber-500 hover:text-amber-400 text-xs mt-1 transition-colors"
+              >
+                {expanded ? "Show less" : "Read more"}
+              </button>
+            )}
+            {isNotMentioned && (
+              <p className="text-slate-600 text-xs mt-0.5">Not mentioned in document</p>
+            )}
+          </div>
         </div>
+        {party && !isNotMentioned && (
+          <span className={`text-xs font-medium shrink-0 mt-0.5 whitespace-nowrap ${party.color}`}>{party.label}</span>
+        )}
       </div>
-      {party && !isNotMentioned && (
-        <span className={`text-xs font-medium shrink-0 mt-0.5 whitespace-nowrap ${party.color}`}>{party.label}</span>
-      )}
     </div>
   );
 }
