@@ -298,277 +298,235 @@ export default function HomePage() {
         </div>
       </nav>
 
-      {/* Hero */}
+      {/* Hero — centered, search only */}
       <div className="relative">
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-amber-500/5 rounded-full blur-3xl" />
         </div>
 
-        <div className="relative max-w-6xl mx-auto px-6 pt-20 pb-20 w-full">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+        <div className="relative max-w-3xl mx-auto px-6 pt-20 pb-10 w-full">
+          <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-3 py-1 mb-6">
+            <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full" />
+            <span className="text-emerald-400 text-xs font-medium">Official Australian strata records</span>
+          </div>
 
-            {/* Left — headline + search + results */}
-            <div>
-              <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-3 py-1 mb-6">
-                <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full" />
-                <span className="text-emerald-400 text-xs font-medium">Official Australian strata records</span>
-              </div>
+          <h1 className="text-5xl font-bold text-white leading-tight mb-5">
+            Know the rules<br />
+            <span className="text-amber-400">before you sign the lease.</span>
+          </h1>
+          <p className="text-slate-300 text-lg mb-10 leading-relaxed">
+            Search any strata building in Australia to instantly see what&apos;s allowed — pets, short-term rentals, renovations — and download the original by-law document.
+          </p>
 
-              <h1 className="text-5xl font-bold text-white leading-tight mb-5">
-                Know the rules<br />
-                <span className="text-amber-400">before you sign the lease.</span>
-              </h1>
-              <p className="text-slate-300 text-lg mb-10 leading-relaxed">
-                Search any strata building in Australia to instantly see what&apos;s allowed — pets, short-term rentals, renovations — and download the original by-law document.
-              </p>
+          {/* Search */}
+          <div className="relative">
+            <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+              <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 111 11a6 6 0 0116 0z" />
+              </svg>
+            </div>
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setTimeout(() => setFocused(false), 150)}
+              placeholder="Search by address, suburb or postcode…"
+              className="w-full bg-slate-900 border border-slate-700 hover:border-slate-600 focus:border-amber-500 text-white rounded-xl pl-10 pr-4 py-4 text-base placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition-colors shadow-lg"
+            />
 
-              {/* Search */}
-              <div className="relative">
-                <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-                  <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 111 11a6 6 0 0116 0z" />
-                  </svg>
-                </div>
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  onFocus={() => setFocused(true)}
-                  onBlur={() => setTimeout(() => setFocused(false), 150)}
-                  placeholder="Search by address, suburb or postcode…"
-                  className="w-full bg-slate-900 border border-slate-700 hover:border-slate-600 focus:border-amber-500 text-white rounded-xl pl-10 pr-4 py-4 text-base placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition-colors shadow-lg"
-                />
-
-                {showDropdown && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-slate-900 border border-slate-700 rounded-xl overflow-hidden z-10 shadow-2xl">
-                    {query.length === 0 && (
-                      <div className="px-4 py-3 border-b border-slate-800">
-                        <p className="text-slate-500 text-xs uppercase tracking-wide mb-2">Try searching for</p>
-                        {EXAMPLE_SEARCHES.map((ex) => (
-                          <button
-                            key={ex}
-                            onMouseDown={() => { setQuery(ex.replace(/^Try a postcode: /, "")); inputRef.current?.focus(); }}
-                            className="w-full text-left py-1.5 text-sm text-slate-400 hover:text-white transition-colors flex items-center gap-2"
-                          >
-                            <svg className="w-3 h-3 text-slate-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 111 11a6 6 0 0116 0z" />
-                            </svg>
-                            {ex}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    {notFound && query.length >= 3 && (
-                      <div className="px-4 py-4 text-center">
-                        <p className="text-slate-400 text-sm">No properties found for &quot;{query}&quot;</p>
-                        <p className="text-slate-600 text-xs mt-1">Our database is growing — try another address or suburb in NSW.</p>
-                      </div>
-                    )}
-                    {suggestions.map((s) => (
+            {showDropdown && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-slate-900 border border-slate-700 rounded-xl overflow-hidden z-10 shadow-2xl">
+                {query.length === 0 && (
+                  <div className="px-4 py-3 border-b border-slate-800">
+                    <p className="text-slate-500 text-xs uppercase tracking-wide mb-2">Try searching for</p>
+                    {EXAMPLE_SEARCHES.map((ex) => (
                       <button
-                        key={s.id}
-                        onMouseDown={() => selectProperty(s)}
-                        className="w-full text-left px-4 py-3 text-sm text-white hover:bg-slate-800 transition-colors border-b border-slate-800 last:border-0 flex items-center gap-3"
+                        key={ex}
+                        onMouseDown={() => { setQuery(ex.replace(/^Try a postcode: /, "")); inputRef.current?.focus(); }}
+                        className="w-full text-left py-1.5 text-sm text-slate-400 hover:text-white transition-colors flex items-center gap-2"
                       >
-                        <svg className="w-3.5 h-3.5 text-slate-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <svg className="w-3 h-3 text-slate-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 111 11a6 6 0 0116 0z" />
                         </svg>
-                        {s.address_raw}
+                        {ex}
                       </button>
                     ))}
                   </div>
                 )}
-              </div>
-
-              <p className="text-slate-500 text-sm mt-4">
-                Instant results · Original PDF included · NSW, VIC &amp; more
-              </p>
-
-              {/* Stats (hidden once result loaded) */}
-              {stats && !result && (
-                <div className="grid grid-cols-3 gap-3 mt-6">
-                  {[
-                    { n: stats.propertyCount.toLocaleString(), label: "Properties" },
-                    { n: stats.documentCount.toLocaleString(), label: "Documents"  },
-                    { n: "3",                                  label: "States"     },
-                  ].map(({ n, label }) => (
-                    <div key={label} className="bg-slate-900/60 border border-slate-800 rounded-xl p-3 text-center">
-                      <p className="text-white font-bold text-lg">{n}</p>
-                      <p className="text-slate-500 text-xs mt-0.5">{label}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Loading skeleton */}
-              {loading && (
-                <div className="mt-6 space-y-4">
-                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 animate-pulse">
-                    <div className="h-3 bg-slate-800 rounded w-28 mb-4" />
-                    <div className="grid grid-cols-2 gap-3">
-                      {[1,2,3,4].map(i => <div key={i} className="h-14 bg-slate-800 rounded-lg" />)}
-                    </div>
+                {notFound && query.length >= 3 && (
+                  <div className="px-4 py-4 text-center">
+                    <p className="text-slate-400 text-sm">No properties found for &quot;{query}&quot;</p>
+                    <p className="text-slate-600 text-xs mt-1">Our database is growing — try another address or suburb in NSW.</p>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {[1,2,3,4,5,6].map(i => <div key={i} className="h-20 bg-slate-900 border border-slate-800 rounded-xl animate-pulse" />)}
-                  </div>
-                </div>
-              )}
-
-              {/* Results */}
-              {result && !loading && (
-                <div className="mt-6 space-y-4">
-                  {/* Address */}
-                  <div className="flex items-center gap-2">
-                    <svg className="w-4 h-4 text-slate-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                )}
+                {suggestions.map((s) => (
+                  <button
+                    key={s.id}
+                    onMouseDown={() => selectProperty(s)}
+                    className="w-full text-left px-4 py-3 text-sm text-white hover:bg-slate-800 transition-colors border-b border-slate-800 last:border-0 flex items-center gap-3"
+                  >
+                    <svg className="w-3.5 h-3.5 text-slate-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
-                    <p className="text-slate-300 text-sm font-medium">{result.address}</p>
-                  </div>
+                    {s.address_raw}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
-                  {/* By-law pills — 2×2 grid */}
-                  {result.bylaws && (
-                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">By-law summary</p>
-                      <div className="grid grid-cols-2 gap-3">
-                        <ValuePill value={result.bylaws.pets_allowed_value}         field="Pets"              icon="🐾" />
-                        <ValuePill value={result.bylaws.short_term_rental_value}    field="Short-term rental" icon="🏠" />
-                        <ValuePill value={result.bylaws.interior_renovations_value} field="Interior reno"     icon="🔨" />
-                        <ValuePill value={result.bylaws.exterior_renovations_value} field="Exterior reno"     icon="🏗️" />
-                      </div>
-                    </div>
-                  )}
+          <p className="text-slate-500 text-sm mt-4">
+            Instant results · Original PDF included · NSW, VIC &amp; more
+          </p>
 
-                  {/* Liability — 2-column card grid */}
-                  {result.liability && (
-                    <div>
-                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Liability &amp; risk summary</p>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {(Object.keys(LIABILITY_LABELS) as (keyof typeof result.liability)[]).map((key) => (
-                          <LiabilityRow key={key} fieldKey={key} data={result.liability![key]} />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Documents — mobile only (desktop: hero right column) */}
-                  {result.documents.length > 0 && (
-                    <div className="lg:hidden space-y-3">
-                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Documents</p>
-                      {result.documents.map((doc) => (
-                        <div key={doc.id} className="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl p-4 transition-colors">
-                          <div className="flex items-center gap-3 min-w-0 mb-3">
-                            <div className="w-8 h-8 bg-slate-800 rounded-lg flex items-center justify-center shrink-0">
-                              <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                              </svg>
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-white text-sm font-medium truncate">{doc.label}</p>
-                              <p className="text-slate-500 text-xs capitalize">{doc.type.replace(/_/g, " ")}</p>
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => handleCheckout(doc.id)}
-                            disabled={checkoutLoading === doc.id}
-                            className="w-full bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-semibold text-sm px-4 py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2"
-                          >
-                            {checkoutLoading === doc.id ? (
-                              <><svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>Loading…</>
-                            ) : (
-                              <><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>Download — $9.95</>
-                            )}
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+          {/* Stats — no result state */}
+          {stats && !result && !loading && (
+            <div className="grid grid-cols-3 gap-3 mt-6">
+              {[
+                { n: stats.propertyCount.toLocaleString(), label: "Properties" },
+                { n: stats.documentCount.toLocaleString(), label: "Documents"  },
+                { n: "3",                                  label: "States"     },
+              ].map(({ n, label }) => (
+                <div key={label} className="bg-slate-900/60 border border-slate-800 rounded-xl p-3 text-center">
+                  <p className="text-white font-bold text-lg">{n}</p>
+                  <p className="text-slate-500 text-xs mt-0.5">{label}</p>
                 </div>
-              )}
-
-              {/* Content sections — no result state */}
-              {!result && !loading && (
-                <div className="mt-14 space-y-14">
-                  <div>
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-6">How it works</p>
-                    <div className="space-y-6">
-                      {[
-                        { step: "1", title: "Search an address", desc: "Enter any strata property address, suburb, or postcode across Australia." },
-                        { step: "2", title: "See the rules instantly", desc: "Our AI reads the by-laws and surfaces what matters — pets, STR, renovations, liability." },
-                        { step: "3", title: "Download the original", desc: "Get the verified PDF document directly from the strata register for $9.95." },
-                      ].map((s) => (
-                        <div key={s.step} className="flex gap-4">
-                          <div className="w-8 h-8 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
-                            <span className="text-amber-400 text-sm font-bold">{s.step}</span>
-                          </div>
-                          <div>
-                            <p className="text-white font-semibold text-base">{s.title}</p>
-                            <p className="text-slate-400 text-sm leading-relaxed mt-1">{s.desc}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 flex gap-4">
-                    <div className="w-9 h-9 bg-emerald-500/10 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
-                      <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-white font-semibold text-sm">Verified, official records</p>
-                      <p className="text-slate-400 text-sm mt-1 leading-relaxed">
-                        Documents are sourced from licensed strata managers and Australian state land registries — not scraped from third-party listings.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
+              ))}
             </div>
+          )}
+        </div>
+      </div>
 
-            {/* Right — documents (sticky, when result) or sample card */}
-            <div className="hidden lg:block">
-              {result && result.documents.length > 0 ? (
-                <div className="space-y-3 sticky top-20">
-                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Documents</p>
-                  {result.documents.map((doc) => (
-                    <div key={doc.id} className="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl p-4 transition-colors">
-                      <div className="flex items-center gap-3 min-w-0 mb-3">
-                        <div className="w-8 h-8 bg-slate-800 rounded-lg flex items-center justify-center shrink-0">
-                          <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-white text-sm font-medium truncate">{doc.label}</p>
-                          <p className="text-slate-500 text-xs capitalize">{doc.type.replace(/_/g, " ")}</p>
-                        </div>
+      {/* Results — full width */}
+      <div className="max-w-6xl mx-auto px-6 pb-20 w-full">
+
+        {/* Loading skeleton */}
+        {loading && (
+          <div className="space-y-4">
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 animate-pulse flex items-center justify-between gap-4">
+              <div className="space-y-2 flex-1">
+                <div className="h-3 bg-slate-800 rounded w-32" />
+                <div className="h-4 bg-slate-800 rounded w-56" />
+              </div>
+              <div className="h-10 bg-slate-800 rounded-lg w-40 shrink-0" />
+            </div>
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 animate-pulse">
+              <div className="h-3 bg-slate-800 rounded w-28 mb-4" />
+              <div className="grid grid-cols-4 gap-3">
+                {[1,2,3,4].map(i => <div key={i} className="h-14 bg-slate-800 rounded-lg" />)}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {[1,2,3,4,5,6].map(i => <div key={i} className="h-20 bg-slate-900 border border-slate-800 rounded-xl animate-pulse" />)}
+            </div>
+          </div>
+        )}
+
+        {/* Result content */}
+        {result && !loading && (
+          <div className="space-y-4">
+
+            {/* Document download card — full width, at top of results */}
+            {result.documents.map((doc) => (
+              <div key={doc.id} className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-center justify-between gap-4 flex-wrap">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 bg-slate-800 rounded-lg flex items-center justify-center shrink-0">
+                    <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-white text-sm font-medium truncate">{doc.label}</p>
+                    <p className="text-slate-500 text-xs capitalize">{doc.type.replace(/_/g, " ")} document</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleCheckout(doc.id)}
+                  disabled={checkoutLoading === doc.id}
+                  className="bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-semibold text-sm px-6 py-2.5 rounded-lg transition-colors flex items-center gap-2 shrink-0"
+                >
+                  {checkoutLoading === doc.id ? (
+                    <><svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>Loading…</>
+                  ) : (
+                    <><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>Download — $9.95</>
+                  )}
+                </button>
+              </div>
+            ))}
+
+            {/* By-law pills — 4 columns full width */}
+            {result.bylaws && (
+              <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">By-law summary</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <ValuePill value={result.bylaws.pets_allowed_value}         field="Pets"              icon="🐾" />
+                  <ValuePill value={result.bylaws.short_term_rental_value}    field="Short-term rental" icon="🏠" />
+                  <ValuePill value={result.bylaws.interior_renovations_value} field="Interior reno"     icon="🔨" />
+                  <ValuePill value={result.bylaws.exterior_renovations_value} field="Exterior reno"     icon="🏗️" />
+                </div>
+              </div>
+            )}
+
+            {/* Liability — 2-column card grid, full width */}
+            {result.liability && (
+              <div>
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Liability &amp; risk summary</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {(Object.keys(LIABILITY_LABELS) as (keyof typeof result.liability)[]).map((key) => (
+                    <LiabilityRow key={key} fieldKey={key} data={result.liability![key]} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* No-result content */}
+        {!result && !loading && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 pt-4">
+            <div className="space-y-14">
+              <div>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-6">How it works</p>
+                <div className="space-y-6">
+                  {[
+                    { step: "1", title: "Search an address", desc: "Enter any strata property address, suburb, or postcode across Australia." },
+                    { step: "2", title: "See the rules instantly", desc: "Our AI reads the by-laws and surfaces what matters — pets, STR, renovations, liability." },
+                    { step: "3", title: "Download the original", desc: "Get the verified PDF document directly from the strata register for $9.95." },
+                  ].map((s) => (
+                    <div key={s.step} className="flex gap-4">
+                      <div className="w-8 h-8 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
+                        <span className="text-amber-400 text-sm font-bold">{s.step}</span>
                       </div>
-                      <button
-                        onClick={() => handleCheckout(doc.id)}
-                        disabled={checkoutLoading === doc.id}
-                        className="w-full bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-semibold text-sm px-4 py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2"
-                      >
-                        {checkoutLoading === doc.id ? (
-                          <><svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>Loading…</>
-                        ) : (
-                          <><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>Download — $9.95</>
-                        )}
-                      </button>
+                      <div>
+                        <p className="text-white font-semibold text-base">{s.title}</p>
+                        <p className="text-slate-400 text-sm leading-relaxed mt-1">{s.desc}</p>
+                      </div>
                     </div>
                   ))}
                 </div>
-              ) : !result && !loading ? (
-                <SampleInsights />
-              ) : null}
+              </div>
+              <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 flex gap-4">
+                <div className="w-9 h-9 bg-emerald-500/10 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
+                  <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-white font-semibold text-sm">Verified, official records</p>
+                  <p className="text-slate-400 text-sm mt-1 leading-relaxed">
+                    Documents sourced from licensed strata managers and Australian state land registries — not scraped from third-party listings.
+                  </p>
+                </div>
+              </div>
             </div>
-
+            <div className="hidden lg:block">
+              <SampleInsights />
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Footer CTA */}
