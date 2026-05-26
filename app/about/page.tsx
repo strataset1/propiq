@@ -1,14 +1,15 @@
 import Link from "next/link";
 
-export const metadata = { title: "About — Strataset" };
+export const metadata = { title: "About — ByLawsIndex.com" };
 
 export default function AboutPage() {
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col">
       <nav className="border-b border-slate-800/60 bg-slate-950/90 backdrop-blur-sm sticky top-0 z-20">
         <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
-          <Link href="/" className="text-white font-bold tracking-tight text-lg">Strataset</Link>
+          <Link href="/" className="text-white font-bold tracking-tight text-lg">ByLawsIndex.com</Link>
           <div className="flex items-center gap-2">
+            <Link href="/" className="text-slate-400 hover:text-white text-sm px-3 py-1.5 rounded-lg hover:bg-slate-800 transition-colors">Home</Link>
             <Link href="/about" className="text-white text-sm px-3 py-1.5 rounded-lg bg-slate-800">About</Link>
             <Link href="/contact" className="text-slate-400 hover:text-white text-sm px-3 py-1.5 rounded-lg hover:bg-slate-800 transition-colors">Contact</Link>
             <Link href="/login" className="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white text-sm px-4 py-1.5 rounded-lg transition-colors font-medium">API Access →</Link>
@@ -22,14 +23,14 @@ export default function AboutPage() {
         <div>
           <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-full px-3 py-1 mb-6">
             <span className="w-1.5 h-1.5 bg-amber-400 rounded-full" />
-            <span className="text-amber-400 text-xs font-medium">About Strataset</span>
+            <span className="text-amber-400 text-xs font-medium">About ByLawsIndex.com</span>
           </div>
           <h1 className="text-4xl sm:text-5xl font-bold text-white leading-tight mb-5">
             Australia&apos;s strata<br />
             <span className="text-amber-400">by-law intelligence platform.</span>
           </h1>
           <p className="text-slate-300 text-xl leading-relaxed">
-            Strataset makes strata by-law data accessible to everyone — whether you&apos;re a renter checking if you can keep a dog, a buyer assessing investment risk, or a PropTech platform needing bulk data at scale.
+            ByLawsIndex.com makes strata by-law data accessible to everyone — whether you&apos;re a renter checking if you can keep a dog, a buyer assessing investment risk, or a PropTech platform needing bulk data at scale.
           </p>
         </div>
 
@@ -68,9 +69,9 @@ export default function AboutPage() {
 
         {/* Who it's for */}
         <div>
-          <h2 className="text-2xl font-bold text-white mb-4">Who is Strataset for?</h2>
+          <h2 className="text-2xl font-bold text-white mb-4">Who is ByLawsIndex.com for?</h2>
           <p className="text-slate-300 text-lg leading-relaxed mb-6">
-            Strataset serves two types of users:
+            ByLawsIndex.com serves two types of users:
           </p>
           <div className="space-y-4">
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
@@ -89,7 +90,7 @@ export default function AboutPage() {
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
               <p className="text-white font-semibold text-lg mb-2">Businesses — PropTech, legal, and real estate platforms</p>
               <p className="text-slate-400 leading-relaxed">
-                Professional teams access Strataset via API. Business accounts get a monthly quota of property lookups, bulk search, webhook delivery, and custom data fields. Pricing is based on usage volume.
+                Professional teams access ByLawsIndex.com via API. Business accounts get a monthly quota of property lookups, bulk search, webhook delivery, and custom data fields. Pricing is based on usage volume.
               </p>
               <ul className="mt-3 space-y-1.5">
                 {["Property portals embedding strata insights in listings", "Conveyancers running automated due diligence", "Mortgage brokers and valuers assessing strata risk at scale"].map(i => (
@@ -111,7 +112,7 @@ export default function AboutPage() {
             <div>
               <p className="text-emerald-400 font-semibold mb-2">Official, verified data</p>
               <p className="text-slate-300 leading-relaxed">
-                All documents on Strataset are sourced from licensed strata managers and official Australian state land registries. We do not scrape third-party listing sites. Every document is the actual registered by-law — the same one a solicitor would reference in a legal dispute. AI extraction is performed by Claude, trained on Australian property law and cross-referenced against the source document.
+                All documents on ByLawsIndex.com are sourced from licensed strata managers and official Australian state land registries.
               </p>
             </div>
           </div>

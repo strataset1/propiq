@@ -49,6 +49,6 @@ export async function searchAddresses(query: string) {
     .select("id, address_raw")
     .or(`address_normalised.ilike.%${q}%,address_raw.ilike.%${q}%`)
     .eq("status", "ready")
-    .limit(isPostcode ? 20 : 6);
+    .limit(isPostcode ? 50 : 20);
   return data ?? [];
 }

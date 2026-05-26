@@ -80,6 +80,23 @@ function ValuePill({ value, field, icon }: { value: string | null; field: string
   );
 }
 
+function LockedPill({ field, icon }: { field: string; icon: string }) {
+  return (
+    <div className="flex items-center gap-2.5 px-3 py-3 rounded-lg bg-slate-800/50">
+      <span className="text-lg opacity-40">{icon}</span>
+      <div>
+        <p className="text-slate-500 text-xs">{field}</p>
+        <div className="flex items-center gap-1 mt-0.5">
+          <svg className="w-3 h-3 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+          <p className="text-slate-600 text-xs font-medium">Locked</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function LiabilityRow({ fieldKey, data }: { fieldKey: string; data: LiabilityField }) {
   const [expanded, setExpanded] = useState(false);
   const meta = LIABILITY_LABELS[fieldKey];
@@ -280,8 +297,11 @@ export default function HomePage() {
       {/* Nav */}
       <nav className="border-b border-slate-800/60 bg-slate-950/90 backdrop-blur-sm sticky top-0 z-20">
         <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
-          <span className="text-white font-bold tracking-tight text-lg">Strataset</span>
+          <span className="text-white font-bold tracking-tight text-lg">ByLawsIndex.com</span>
           <div className="flex items-center gap-2">
+            <Link href="/" className="text-slate-400 hover:text-white text-sm px-3 py-1.5 rounded-lg hover:bg-slate-800 transition-colors">
+              Home
+            </Link>
             <Link href="/about" className="text-slate-400 hover:text-white text-sm px-3 py-1.5 rounded-lg hover:bg-slate-800 transition-colors">
               About
             </Link>
@@ -429,55 +449,76 @@ export default function HomePage() {
         {result && !loading && (
           <div className="space-y-4">
 
-            {/* Document download card — full width, at top of results */}
-            {result.documents.map((doc) => (
-              <div key={doc.id} className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-center justify-between gap-4 flex-wrap">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-9 h-9 bg-slate-800 rounded-lg flex items-center justify-center shrink-0">
-                    <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            {/* Unlock CTA — full width */}
+            {result.documents.length > 0 ? result.documents.map((doc) => (
+              <div key={doc.id} className="bg-slate-900 border border-amber-500/30 rounded-xl p-5 flex items-start justify-between gap-4 flex-wrap">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <svg className="w-4 h-4 text-slate-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
+                    <p className="text-white font-semibold text-sm">{result.address}</p>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-white text-sm font-medium truncate">{doc.label}</p>
-                    <p className="text-slate-500 text-xs capitalize">{doc.type.replace(/_/g, " ")} document</p>
-                  </div>
+                  <p className="text-slate-400 text-sm">Unlock the full by-law summary and download the original PDF document.</p>
                 </div>
                 <button
                   onClick={() => handleCheckout(doc.id)}
                   disabled={checkoutLoading === doc.id}
-                  className="bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-semibold text-sm px-6 py-2.5 rounded-lg transition-colors flex items-center gap-2 shrink-0"
+                  className="bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-bold text-sm px-6 py-3 rounded-lg transition-colors flex items-center gap-2 shrink-0"
                 >
                   {checkoutLoading === doc.id ? (
                     <><svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>Loading…</>
                   ) : (
-                    <><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>Download — $9.95</>
+                    <><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" /></svg>Unlock &amp; Download — $9.95</>
                   )}
                 </button>
               </div>
-            ))}
+            )) : (
+              <div className="flex items-center gap-2 mb-2">
+                <svg className="w-4 h-4 text-slate-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <p className="text-slate-300 text-sm font-medium">{result.address}</p>
+              </div>
+            )}
 
-            {/* By-law pills — 4 columns full width */}
+            {/* By-law summary — locked */}
             {result.bylaws && (
               <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
                 <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">By-law summary</p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <ValuePill value={result.bylaws.pets_allowed_value}         field="Pets"              icon="🐾" />
-                  <ValuePill value={result.bylaws.short_term_rental_value}    field="Short-term rental" icon="🏠" />
-                  <ValuePill value={result.bylaws.interior_renovations_value} field="Interior reno"     icon="🔨" />
-                  <ValuePill value={result.bylaws.exterior_renovations_value} field="Exterior reno"     icon="🏗️" />
+                  <LockedPill field="Pets"              icon="🐾" />
+                  <LockedPill field="Short-term rental" icon="🏠" />
+                  <LockedPill field="Interior reno"     icon="🔨" />
+                  <LockedPill field="Exterior reno"     icon="🏗️" />
                 </div>
               </div>
             )}
 
-            {/* Liability — 2-column card grid, full width */}
+            {/* Liability — locked cards */}
             {result.liability && (
               <div>
                 <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Liability &amp; risk summary</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {(Object.keys(LIABILITY_LABELS) as (keyof typeof result.liability)[]).map((key) => (
-                    <LiabilityRow key={key} fieldKey={key} data={result.liability![key]} />
-                  ))}
+                  {(Object.keys(LIABILITY_LABELS) as string[]).map((key) => {
+                    const meta = LIABILITY_LABELS[key];
+                    return (
+                      <div key={key} className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-center gap-3">
+                        <span className="text-base opacity-40 shrink-0">{meta.icon}</span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-slate-400 text-sm font-medium">{meta.label}</p>
+                          <div className="flex items-center gap-1 mt-0.5">
+                            <svg className="w-3 h-3 text-slate-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                            <p className="text-slate-600 text-xs">Purchase to unlock</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -517,7 +558,7 @@ export default function HomePage() {
                 <div>
                   <p className="text-white font-semibold text-sm">Verified, official records</p>
                   <p className="text-slate-400 text-sm mt-1 leading-relaxed">
-                    Documents sourced from licensed strata managers and Australian state land registries — not scraped from third-party listings.
+                    Documents are sourced from licensed strata managers and official Australian state land registries.
                   </p>
                 </div>
               </div>
@@ -548,7 +589,7 @@ export default function HomePage() {
           </div>
         </div>
         <div className="border-t border-slate-800/50 max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <span className="text-slate-600 text-xs">© 2025 Strataset. All rights reserved.</span>
+          <span className="text-slate-600 text-xs">© 2025 ByLawsIndex.com. All rights reserved.</span>
           <div className="flex gap-4">
             <Link href="/about" className="text-slate-600 hover:text-slate-400 text-xs transition-colors">About</Link>
             <Link href="/contact" className="text-slate-600 hover:text-slate-400 text-xs transition-colors">Contact</Link>

@@ -39,8 +39,9 @@ export default function ContactPage() {
     <div className="min-h-screen bg-slate-950 flex flex-col">
       <nav className="border-b border-slate-800/60 bg-slate-950/90 backdrop-blur-sm sticky top-0 z-20">
         <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
-          <Link href="/" className="text-white font-bold tracking-tight text-lg">Strataset</Link>
+          <Link href="/" className="text-white font-bold tracking-tight text-lg">ByLawsIndex.com</Link>
           <div className="flex items-center gap-2">
+            <Link href="/" className="text-slate-400 hover:text-white text-sm px-3 py-1.5 rounded-lg hover:bg-slate-800 transition-colors">Home</Link>
             <Link href="/about" className="text-slate-400 hover:text-white text-sm px-3 py-1.5 rounded-lg hover:bg-slate-800 transition-colors">About</Link>
             <Link href="/contact" className="text-white text-sm px-3 py-1.5 rounded-lg bg-slate-800">Contact</Link>
             <Link href="/login" className="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white text-sm px-4 py-1.5 rounded-lg transition-colors font-medium">API Access →</Link>

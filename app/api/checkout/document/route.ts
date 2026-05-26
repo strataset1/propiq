@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
             unit_amount: 995,
             product_data: {
               name: doc.label ?? "Strata By-Laws Document",
-              description: "Single PDF download — Strataset",
+              description: "Single PDF download — ByLawsIndex.com",
             },
           },
           quantity: 1,
