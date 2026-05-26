@@ -220,27 +220,21 @@ export default function HomePage() {
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-amber-500/5 rounded-full blur-3xl" />
         </div>
 
-        <div className={`relative max-w-5xl mx-auto px-6 w-full transition-all ${result || loading ? "pt-8 pb-4" : "pt-20 pb-14"}`}>
+        <div className="relative max-w-5xl mx-auto px-6 pt-20 pb-14 w-full">
           <div className="max-w-2xl">
             {/* Legitimacy badge */}
-            {!result && !loading && (
-              <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-3 py-1 mb-6">
-                <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full" />
-                <span className="text-emerald-400 text-xs font-medium">Official Australian strata records</span>
-              </div>
-            )}
+            <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-3 py-1 mb-6">
+              <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full" />
+              <span className="text-emerald-400 text-xs font-medium">Official Australian strata records</span>
+            </div>
 
-            {!result && !loading && (
-              <>
-                <h1 className="text-5xl sm:text-6xl font-bold text-white leading-tight mb-5">
-                  Know the rules<br />
-                  <span className="text-amber-400">before you sign the lease.</span>
-                </h1>
-                <p className="text-slate-300 text-xl mb-10 leading-relaxed">
-                  Search any strata building in Australia to instantly see what&apos;s allowed — pets, short-term rentals, renovations — and download the original by-law document.
-                </p>
-              </>
-            )}
+            <h1 className="text-5xl sm:text-6xl font-bold text-white leading-tight mb-5">
+              Know the rules<br />
+              <span className="text-amber-400">before you sign the lease.</span>
+            </h1>
+            <p className="text-slate-300 text-xl mb-10 leading-relaxed">
+              Search any strata building in Australia to instantly see what&apos;s allowed — pets, short-term rentals, renovations — and download the original by-law document.
+            </p>
 
             {/* Search */}
             <div className="relative">
