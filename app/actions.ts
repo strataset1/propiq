@@ -4,11 +4,11 @@ import { createServiceClient } from "@/lib/supabase/server";
 
 export async function getStats() {
   const supabase = createServiceClient();
-  const { count } = await supabase
-    .from("properties")
-    .select("id", { count: "exact", head: true })
-    .eq("status", "ready");
-  return { propertyCount: count ?? 0 };
+  const [{ count: propCount }, { count: docCount }] = await Promise.all([
+    supabase.from("properties").select("id", { count: "exact", head: true }).eq("status", "ready"),
+    supabase.from("documents").select("id", { count: "exact", head: true }).not("processed_at", "is", null),
+  ]);
+  return { propertyCount: propCount ?? 0, documentCount: docCount ?? 0 };
 }
 
 export async function getPropertyData(propertyId: string) {

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { getPropertyData, searchAddresses } from "./actions";
+import { getPropertyData, searchAddresses, getStats } from "./actions";
 
 type Suggestion = { id: string; address_raw: string };
 
@@ -127,6 +127,104 @@ function LiabilityRow({ fieldKey, data }: { fieldKey: string; data: LiabilityFie
   );
 }
 
+const SAMPLE_PILLS = [
+  { field: "Pets",             icon: "🐾", value: "maybe", label: "Conditional"  },
+  { field: "Short-term rental",icon: "🏠", value: "no",    label: "Not allowed"  },
+  { field: "Interior reno",    icon: "🔨", value: "yes",   label: "Allowed"      },
+  { field: "Exterior reno",    icon: "🏗️", value: "no",    label: "Not allowed"  },
+];
+
+const SAMPLE_LIABILITY = [
+  { icon: "🔧", label: "Maintenance responsibility" },
+  { icon: "🛡️", label: "Insurance excess"           },
+  { icon: "💰", label: "Special levy"               },
+  { icon: "🏢", label: "Use restrictions"           },
+  { icon: "🔥", label: "Combustible cladding"       },
+  { icon: "🏗️", label: "Building defects"           },
+];
+
+function SampleInsights({ propCount, docCount }: { propCount: number; docCount: number }) {
+  const VALUE_COLORS: Record<string, string> = {
+    yes:   "text-emerald-400",
+    no:    "text-red-400",
+    maybe: "text-amber-400",
+  };
+  const VALUE_BG: Record<string, string> = {
+    yes:   "bg-emerald-500/10",
+    no:    "bg-red-500/10",
+    maybe: "bg-amber-500/10",
+  };
+
+  return (
+    <div className="mt-10 space-y-5 max-w-2xl">
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-4">
+        {[
+          { n: propCount.toLocaleString(), label: "Properties indexed" },
+          { n: docCount.toLocaleString(),  label: "Documents analysed" },
+          { n: "NSW · VIC · QLD",          label: "States covered"     },
+        ].map(({ n, label }) => (
+          <div key={label} className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 text-center">
+            <p className="text-white font-bold text-xl">{n}</p>
+            <p className="text-slate-500 text-xs mt-0.5">{label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Sample card */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+        <div className="px-5 pt-5 pb-3 border-b border-slate-800 flex items-center justify-between">
+          <div>
+            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Example result</p>
+            <p className="text-white text-sm font-medium mt-0.5">12 Bligh Street, Sydney NSW 2000</p>
+          </div>
+          <span className="text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-1 rounded-full">Sample</span>
+        </div>
+
+        {/* By-law pills */}
+        <div className="px-5 py-4 border-b border-slate-800">
+          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-3">By-law summary</p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {SAMPLE_PILLS.map((p) => (
+              <div key={p.field} className={`flex items-center gap-2 px-3 py-2.5 rounded-lg ${VALUE_BG[p.value]}`}>
+                <span className="text-base">{p.icon}</span>
+                <div>
+                  <p className="text-slate-400 text-xs">{p.field}</p>
+                  <p className={`text-sm font-semibold ${VALUE_COLORS[p.value]}`}>{p.label}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Blurred liability section */}
+        <div className="relative px-5 py-4">
+          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-3">Liability &amp; risk summary</p>
+          <div className="space-y-3 select-none blur-sm pointer-events-none" aria-hidden>
+            {SAMPLE_LIABILITY.map((row) => (
+              <div key={row.label} className="flex items-center gap-2.5">
+                <span className="text-base">{row.icon}</span>
+                <div className="flex-1">
+                  <p className="text-slate-300 text-sm font-medium">{row.label}</p>
+                  <div className="h-2.5 bg-slate-700 rounded mt-1 w-3/4" />
+                </div>
+                <div className="h-4 bg-slate-700 rounded w-16" />
+              </div>
+            ))}
+          </div>
+          {/* Overlay */}
+          <div className="absolute inset-0 flex items-center justify-center bg-slate-950/60 backdrop-blur-[1px]">
+            <div className="text-center">
+              <p className="text-white font-semibold text-sm">Search your address above</p>
+              <p className="text-slate-400 text-xs mt-1">to unlock full liability &amp; risk details</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function HomePage() {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -135,8 +233,13 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false);
   const [focused, setFocused] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+  const [stats, setStats] = useState<{ propertyCount: number; documentCount: number } | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    getStats().then(setStats);
+  }, []);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -306,6 +409,11 @@ export default function HomePage() {
               <p className="text-slate-500 text-sm mt-4">
                 Instant results · Original PDF included · NSW, VIC &amp; more
               </p>
+            )}
+
+            {/* Stats + sample insights */}
+            {!result && !loading && stats && (
+              <SampleInsights propCount={stats.propertyCount} docCount={stats.documentCount} />
             )}
           </div>
         </div>
