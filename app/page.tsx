@@ -13,6 +13,43 @@ const EXAMPLE_SEARCHES = [
   "Try a postcode: 2009",
 ];
 
+const BROWSE: Record<string, { label: string; query: string }[]> = {
+  NSW: [
+    { label: "Sydney CBD",        query: "Sydney NSW 2000" },
+    { label: "Pyrmont",           query: "Pyrmont NSW 2009" },
+    { label: "Inner West",        query: "Newtown NSW"      },
+    { label: "Eastern Suburbs",   query: "Bondi NSW"        },
+    { label: "North Shore",       query: "North Sydney NSW" },
+    { label: "Northern Beaches",  query: "Manly NSW"        },
+    { label: "Parramatta",        query: "Parramatta NSW"   },
+    { label: "Chatswood",         query: "Chatswood NSW"    },
+  ],
+  VIC: [
+    { label: "Melbourne CBD",     query: "Melbourne VIC 3000" },
+    { label: "Southbank",         query: "Southbank VIC"      },
+    { label: "South Yarra",       query: "South Yarra VIC"    },
+    { label: "Richmond",          query: "Richmond VIC"       },
+    { label: "St Kilda",          query: "St Kilda VIC"       },
+    { label: "Fitzroy",           query: "Fitzroy VIC"        },
+  ],
+  QLD: [
+    { label: "Brisbane CBD",      query: "Brisbane QLD 4000" },
+    { label: "Gold Coast",        query: "Surfers Paradise QLD" },
+    { label: "Sunshine Coast",    query: "Maroochydore QLD"  },
+    { label: "South Brisbane",    query: "South Brisbane QLD" },
+  ],
+  WA: [
+    { label: "Perth CBD",         query: "Perth WA 6000"     },
+    { label: "Fremantle",         query: "Fremantle WA"      },
+    { label: "Subiaco",           query: "Subiaco WA"        },
+  ],
+  SA: [
+    { label: "Adelaide CBD",      query: "Adelaide SA 5000"  },
+    { label: "Glenelg",           query: "Glenelg SA"        },
+    { label: "North Adelaide",    query: "North Adelaide SA" },
+  ],
+};
+
 const SAMPLE_PILLS = [
   { field: "Pets",             icon: "🐾", value: "maybe", label: "Conditional"  },
   { field: "Short-term rental",icon: "🏠", value: "no",    label: "Not allowed"  },
@@ -98,6 +135,7 @@ export default function HomePage() {
   const [notFound, setNotFound] = useState(false);
   const [focused, setFocused] = useState(false);
   const [stats, setStats] = useState<{ propertyCount: number; documentCount: number } | null>(null);
+  const [selectedState, setSelectedState] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -119,6 +157,22 @@ export default function HomePage() {
     setSuggestions([]);
     setFocused(false);
     router.push(`/property/${p.id}`);
+  }
+
+  async function browseArea(areaQuery: string) {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    setQuery(areaQuery);
+    setNotFound(false);
+    setSuggestions([]);
+    setFocused(true);
+    const data = await searchAddresses(areaQuery);
+    setSuggestions(data);
+    setNotFound(data.length === 0);
+    inputRef.current?.focus();
+  }
+
+  function toggleState(state: string) {
+    setSelectedState((s) => (s === state ? null : state));
   }
 
   const showDropdown = focused && (suggestions.length > 0 || (notFound && query.length >= 3) || (query.length === 0));
@@ -218,7 +272,41 @@ export default function HomePage() {
             )}
           </div>
 
-          <p className="text-slate-500 text-sm mt-4">
+          {/* Browse by state */}
+          <div className="mt-4 space-y-2.5">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-slate-600 text-xs">Browse by state:</span>
+              {Object.keys(BROWSE).map((state) => (
+                <button
+                  key={state}
+                  onClick={() => toggleState(state)}
+                  className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${
+                    selectedState === state
+                      ? "bg-amber-500/15 border-amber-500/40 text-amber-400"
+                      : "bg-slate-800/60 border-slate-700 text-slate-400 hover:text-white hover:border-slate-500"
+                  }`}
+                >
+                  {state}
+                </button>
+              ))}
+            </div>
+
+            {selectedState && (
+              <div className="flex items-center gap-2 flex-wrap pl-0.5">
+                {BROWSE[selectedState].map((area) => (
+                  <button
+                    key={area.label}
+                    onClick={() => browseArea(area.query)}
+                    className="text-xs px-3 py-1.5 rounded-full border border-slate-700/70 bg-slate-900 text-slate-400 hover:text-white hover:border-amber-500/40 hover:bg-amber-500/10 transition-colors"
+                  >
+                    {area.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <p className="text-slate-500 text-sm mt-3">
             Instant results · Original PDF included · NSW, VIC &amp; more
           </p>
 
