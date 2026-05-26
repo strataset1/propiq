@@ -10,6 +10,7 @@ type LiabilityField = {
   summary: string | null;
   responsible_party: "lot_owner" | "strata" | "shared" | "not_mentioned" | null;
   confidence: number | null;
+  source_phrase: string | null;
 };
 
 type ByLawResult = {
@@ -89,14 +90,24 @@ function LiabilityRow({ fieldKey, data }: { fieldKey: string; data: LiabilityFie
   return (
     <div className="py-3 border-b border-slate-800/60 last:border-0">
       <div className="flex items-start justify-between gap-4">
-        <div className="flex items-start gap-2.5 min-w-0">
+        <div className="flex items-start gap-2.5 min-w-0 flex-1">
           <span className="text-base mt-0.5 shrink-0">{meta?.icon ?? "•"}</span>
-          <div className="min-w-0">
-            <p className="text-slate-200 text-sm font-medium">{meta?.label ?? fieldKey}</p>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-slate-200 text-sm font-medium">{meta?.label ?? fieldKey}</p>
+              {party && !isNotMentioned && (
+                <span className={`text-xs font-medium shrink-0 whitespace-nowrap ${party.color}`}>{party.label}</span>
+              )}
+            </div>
             {!isNotMentioned && data.summary && (
-              <p className={`text-slate-500 text-xs mt-0.5 leading-relaxed ${expanded ? "" : "line-clamp-2"}`}>
+              <p className={`text-slate-500 text-xs mt-1 leading-relaxed ${expanded ? "" : "line-clamp-2"}`}>
                 {data.summary}
               </p>
+            )}
+            {!isNotMentioned && data.source_phrase && (
+              <blockquote className="mt-2 pl-3 border-l-2 border-slate-700">
+                <p className="text-slate-600 text-xs italic leading-relaxed">{data.source_phrase}</p>
+              </blockquote>
             )}
             {!isNotMentioned && hasLongSummary && (
               <button
@@ -111,9 +122,6 @@ function LiabilityRow({ fieldKey, data }: { fieldKey: string; data: LiabilityFie
             )}
           </div>
         </div>
-        {party && !isNotMentioned && (
-          <span className={`text-xs font-medium shrink-0 mt-0.5 whitespace-nowrap ${party.color}`}>{party.label}</span>
-        )}
       </div>
     </div>
   );
@@ -151,14 +159,14 @@ export default function HomePage() {
     const { bylaws, docs, liab } = await getPropertyData(p.id);
 
     const liability = liab ? {
-      combustible_cladding:      { summary: liab.combustible_cladding_summary,       responsible_party: liab.combustible_cladding_responsible_party as any,       confidence: liab.combustible_cladding_confidence },
-      building_defect:           { summary: liab.building_defect_summary,            responsible_party: liab.building_defect_responsible_party as any,            confidence: liab.building_defect_confidence },
-      str_rules:                 { summary: liab.str_rules_summary,                  responsible_party: liab.str_rules_responsible_party as any,                  confidence: liab.str_rules_confidence },
-      maintenance_responsibility:{ summary: liab.maintenance_responsibility_summary, responsible_party: liab.maintenance_responsibility_responsible_party as any, confidence: liab.maintenance_responsibility_confidence },
-      insurance_excess:          { summary: liab.insurance_excess_summary,           responsible_party: liab.insurance_excess_responsible_party as any,           confidence: liab.insurance_excess_confidence },
-      special_levy:              { summary: liab.special_levy_summary,               responsible_party: liab.special_levy_responsible_party as any,               confidence: liab.special_levy_confidence },
-      mixed_use_occupancy:       { summary: liab.mixed_use_occupancy_summary,        responsible_party: liab.mixed_use_occupancy_responsible_party as any,        confidence: liab.mixed_use_occupancy_confidence },
-      pets:                      { summary: liab.pets_summary,                       responsible_party: liab.pets_responsible_party as any,                       confidence: liab.pets_confidence },
+      combustible_cladding:      { summary: liab.combustible_cladding_summary,       responsible_party: liab.combustible_cladding_responsible_party as any,       confidence: liab.combustible_cladding_confidence,       source_phrase: liab.combustible_cladding_source },
+      building_defect:           { summary: liab.building_defect_summary,            responsible_party: liab.building_defect_responsible_party as any,            confidence: liab.building_defect_confidence,            source_phrase: liab.building_defect_source },
+      str_rules:                 { summary: liab.str_rules_summary,                  responsible_party: liab.str_rules_responsible_party as any,                  confidence: liab.str_rules_confidence,                  source_phrase: liab.str_rules_source },
+      maintenance_responsibility:{ summary: liab.maintenance_responsibility_summary, responsible_party: liab.maintenance_responsibility_responsible_party as any, confidence: liab.maintenance_responsibility_confidence, source_phrase: liab.maintenance_responsibility_source },
+      insurance_excess:          { summary: liab.insurance_excess_summary,           responsible_party: liab.insurance_excess_responsible_party as any,           confidence: liab.insurance_excess_confidence,           source_phrase: liab.insurance_excess_source },
+      special_levy:              { summary: liab.special_levy_summary,               responsible_party: liab.special_levy_responsible_party as any,               confidence: liab.special_levy_confidence,               source_phrase: liab.special_levy_source },
+      mixed_use_occupancy:       { summary: liab.mixed_use_occupancy_summary,        responsible_party: liab.mixed_use_occupancy_responsible_party as any,        confidence: liab.mixed_use_occupancy_confidence,        source_phrase: liab.mixed_use_occupancy_source },
+      pets:                      { summary: liab.pets_summary,                       responsible_party: liab.pets_responsible_party as any,                       confidence: liab.pets_confidence,                       source_phrase: liab.pets_source },
     } : null;
 
     setResult({ propertyId: p.id, address: p.address_raw, documents: docs ?? [], bylaws: bylaws ?? null, liability });
