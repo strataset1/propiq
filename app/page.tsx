@@ -207,8 +207,8 @@ export default function HomePage() {
       </nav>
 
       {/* Hero */}
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none">
+      <div className="relative">
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-amber-500/5 rounded-full blur-3xl" />
         </div>
 
