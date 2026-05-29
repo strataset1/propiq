@@ -13,40 +13,62 @@ const EXAMPLE_SEARCHES = [
   "Try a postcode: 2009",
 ];
 
-const BROWSE: Record<string, { label: string; query: string }[]> = {
+type Area = { label: string; query: string };
+
+const BROWSE_AU: Record<string, Area[]> = {
   NSW: [
-    { label: "Sydney CBD",        query: "Sydney NSW 2000" },
-    { label: "Pyrmont",           query: "Pyrmont NSW 2009" },
-    { label: "Inner West",        query: "Newtown NSW"      },
-    { label: "Eastern Suburbs",   query: "Bondi NSW"        },
-    { label: "North Shore",       query: "North Sydney NSW" },
-    { label: "Northern Beaches",  query: "Manly NSW"        },
-    { label: "Parramatta",        query: "Parramatta NSW"   },
-    { label: "Chatswood",         query: "Chatswood NSW"    },
+    { label: "Sydney CBD",       query: "Sydney NSW 2000"      },
+    { label: "Pyrmont",          query: "Pyrmont NSW 2009"     },
+    { label: "Inner West",       query: "Newtown NSW"          },
+    { label: "Eastern Suburbs",  query: "Bondi NSW"            },
+    { label: "North Shore",      query: "North Sydney NSW"     },
+    { label: "Northern Beaches", query: "Manly NSW"            },
+    { label: "Parramatta",       query: "Parramatta NSW"       },
+    { label: "Chatswood",        query: "Chatswood NSW"        },
   ],
   VIC: [
-    { label: "Melbourne CBD",     query: "Melbourne VIC 3000" },
-    { label: "Southbank",         query: "Southbank VIC"      },
-    { label: "South Yarra",       query: "South Yarra VIC"    },
-    { label: "Richmond",          query: "Richmond VIC"       },
-    { label: "St Kilda",          query: "St Kilda VIC"       },
-    { label: "Fitzroy",           query: "Fitzroy VIC"        },
+    { label: "Melbourne CBD",    query: "Melbourne VIC 3000"   },
+    { label: "Southbank",        query: "Southbank VIC"        },
+    { label: "South Yarra",      query: "South Yarra VIC"      },
+    { label: "Richmond",         query: "Richmond VIC"         },
+    { label: "St Kilda",         query: "St Kilda VIC"         },
+    { label: "Fitzroy",          query: "Fitzroy VIC"          },
   ],
   QLD: [
-    { label: "Brisbane CBD",      query: "Brisbane QLD 4000" },
-    { label: "Gold Coast",        query: "Surfers Paradise QLD" },
-    { label: "Sunshine Coast",    query: "Maroochydore QLD"  },
-    { label: "South Brisbane",    query: "South Brisbane QLD" },
+    { label: "Brisbane CBD",     query: "Brisbane QLD 4000"    },
+    { label: "Gold Coast",       query: "Surfers Paradise QLD" },
+    { label: "Sunshine Coast",   query: "Maroochydore QLD"     },
+    { label: "South Brisbane",   query: "South Brisbane QLD"   },
   ],
   WA: [
-    { label: "Perth CBD",         query: "Perth WA 6000"     },
-    { label: "Fremantle",         query: "Fremantle WA"      },
-    { label: "Subiaco",           query: "Subiaco WA"        },
+    { label: "Perth CBD",        query: "Perth WA 6000"        },
+    { label: "Fremantle",        query: "Fremantle WA"         },
+    { label: "Subiaco",          query: "Subiaco WA"           },
   ],
   SA: [
-    { label: "Adelaide CBD",      query: "Adelaide SA 5000"  },
-    { label: "Glenelg",           query: "Glenelg SA"        },
-    { label: "North Adelaide",    query: "North Adelaide SA" },
+    { label: "Adelaide CBD",     query: "Adelaide SA 5000"     },
+    { label: "Glenelg",          query: "Glenelg SA"           },
+    { label: "North Adelaide",   query: "North Adelaide SA"    },
+  ],
+};
+
+const BROWSE_US: Record<string, Area[]> = {
+  WA: [
+    { label: "Capitol Hill",       query: "Capitol Hill Seattle"       },
+    { label: "Belltown",           query: "Belltown Seattle"           },
+    { label: "South Lake Union",   query: "South Lake Union Seattle"   },
+    { label: "Queen Anne",         query: "Queen Anne Seattle"         },
+    { label: "Fremont",            query: "Fremont Seattle"            },
+    { label: "Ballard",            query: "Ballard Seattle"            },
+    { label: "West Seattle",       query: "West Seattle Seattle"       },
+    { label: "University District",query: "University District Seattle"},
+    { label: "Green Lake",         query: "Green Lake Seattle"         },
+    { label: "Eastlake",           query: "Eastlake Seattle"           },
+    { label: "Madrona",            query: "Madrona Seattle"            },
+    { label: "Bellevue",           query: "Bellevue WA"                },
+    { label: "Kirkland",           query: "Kirkland WA"                },
+    { label: "Redmond",            query: "Redmond WA"                 },
+    { label: "Mercer Island",      query: "Mercer Island WA"           },
   ],
 };
 
@@ -134,6 +156,7 @@ export default function HomePage() {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [notFound, setNotFound] = useState(false);
   const [stats, setStats] = useState<{ propertyCount: number; documentCount: number } | null>(null);
+  const [selectedCountry, setSelectedCountry] = useState<"au" | "us" | null>(null);
   const [selectedState, setSelectedState] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -166,6 +189,16 @@ export default function HomePage() {
     setSuggestions(data);
     setNotFound(data.length === 0);
     inputRef.current?.focus();
+  }
+
+  function selectCountry(country: "au" | "us") {
+    if (selectedCountry === country) {
+      setSelectedCountry(null);
+      setSelectedState(null);
+    } else {
+      setSelectedCountry(country);
+      setSelectedState(null);
+    }
   }
 
   function toggleState(state: string) {
@@ -280,29 +313,65 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* Browse by state — hidden while results are showing */}
+          {/* Browse — hidden while results are showing */}
           {!hasResults && (
             <div className="mt-4 space-y-2.5">
+              {/* Level 1: Country */}
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-slate-600 text-xs">Browse by state:</span>
-                {["ALL", ...Object.keys(BROWSE)].map((state) => (
+                <span className="text-slate-600 text-xs shrink-0">Browse by:</span>
+                {(["au", "us"] as const).map((c) => (
                   <button
-                    key={state}
-                    onClick={() => toggleState(state)}
+                    key={c}
+                    onClick={() => selectCountry(c)}
                     className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${
-                      selectedState === state
+                      selectedCountry === c
                         ? "bg-amber-500/15 border-amber-500/40 text-amber-400"
                         : "bg-slate-800/60 border-slate-700 text-slate-400 hover:text-white hover:border-slate-500"
                     }`}
                   >
-                    {state}
+                    {c === "au" ? "🇦🇺 Australia" : "🇺🇸 USA"}
                   </button>
                 ))}
               </div>
 
-              {selectedState && (
+              {/* Level 2: State — pills for AU, dropdown for US */}
+              {selectedCountry === "au" && (
                 <div className="flex items-center gap-2 flex-wrap pl-0.5">
-                  {(selectedState === "ALL" ? Object.values(BROWSE).flat() : BROWSE[selectedState]).map((area) => (
+                  {Object.keys(BROWSE_AU).map((state) => (
+                    <button
+                      key={state}
+                      onClick={() => toggleState(state)}
+                      className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${
+                        selectedState === state
+                          ? "bg-slate-100/10 border-slate-400 text-white"
+                          : "bg-slate-800/60 border-slate-700 text-slate-400 hover:text-white hover:border-slate-500"
+                      }`}
+                    >
+                      {state}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {selectedCountry === "us" && (
+                <div className="pl-0.5">
+                  <select
+                    value={selectedState ?? ""}
+                    onChange={(e) => setSelectedState(e.target.value || null)}
+                    className="bg-slate-800 border border-slate-700 text-slate-300 text-xs rounded-lg px-3 py-1.5 focus:outline-none focus:border-amber-500 transition-colors cursor-pointer"
+                  >
+                    <option value="">Select a state…</option>
+                    {Object.keys(BROWSE_US).map((state) => (
+                      <option key={state} value={state}>{state === "WA" ? "Washington (WA)" : state}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Level 3: Area pills */}
+              {selectedState && selectedCountry && (
+                <div className="flex items-center gap-2 flex-wrap pl-0.5">
+                  {(selectedCountry === "us" ? BROWSE_US[selectedState] : BROWSE_AU[selectedState])?.map((area) => (
                     <button
                       key={area.label}
                       onClick={() => browseArea(area.query)}
