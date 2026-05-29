@@ -22,6 +22,7 @@ type SuburbState = "idle" | "crawling" | "done" | "error" | "timeout";
 type Props = {
   nswSuburbs: string[];
   vicSuburbs: string[];
+  seattleNeighborhoods: string[];
   crawledMap: Record<string, CrawlRecord>;
   docsBySuburb: Record<string, DocRecord[]>;
 };
@@ -77,10 +78,12 @@ function DocRow({ doc, onDelete }: { doc: DocRecord; onDelete: (id: string) => v
 
 function SuburbRow({
   suburb,
+  region,
   crawled,
   docs: initialDocs,
 }: {
   suburb: string;
+  region: "au" | "us";
   crawled: CrawlRecord | undefined;
   docs: DocRecord[];
 }) {
@@ -108,7 +111,7 @@ function SuburbRow({
       const res = await fetch("/api/admin/crawl/suburb", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ suburb }),
+        body: JSON.stringify({ suburb, region }),
       });
       clearTimeout(timeoutId);
 
@@ -226,33 +229,39 @@ function SuburbRow({
   );
 }
 
-export function SuburbList({ nswSuburbs, vicSuburbs, crawledMap, docsBySuburb }: Props) {
-  const [tab, setTab] = useState<"nsw" | "vic">("nsw");
+export function SuburbList({ nswSuburbs, vicSuburbs, seattleNeighborhoods, crawledMap, docsBySuburb }: Props) {
+  const [tab, setTab] = useState<"nsw" | "vic" | "seattle">("nsw");
 
-  const suburbs = tab === "nsw" ? nswSuburbs : vicSuburbs;
+  const tabConfig = {
+    nsw:     { suburbs: nswSuburbs,           region: "au" as const, label: "NSW" },
+    vic:     { suburbs: vicSuburbs,           region: "au" as const, label: "VIC" },
+    seattle: { suburbs: seattleNeighborhoods, region: "us" as const, label: "Seattle" },
+  };
 
-  const nswCrawled = nswSuburbs.filter((s) => crawledMap[s]).length;
-  const vicCrawled = vicSuburbs.filter((s) => crawledMap[s]).length;
+  const { suburbs, region } = tabConfig[tab];
+
 
   return (
     <div>
       <div className="flex gap-1 mb-6">
-        {(["nsw", "vic"] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`px-4 py-1.5 rounded text-sm font-medium transition-colors ${
-              tab === t
-                ? "bg-indigo-600 text-white"
-                : "bg-slate-800 text-slate-400 hover:text-white"
-            }`}
-          >
-            {t.toUpperCase()}
-            <span className="ml-2 text-xs font-mono opacity-60">
-              {t === "nsw" ? `${nswCrawled}/${nswSuburbs.length}` : `${vicCrawled}/${vicSuburbs.length}`}
-            </span>
-          </button>
-        ))}
+        {(["nsw", "vic", "seattle"] as const).map((t) => {
+          const { suburbs: ts, label } = tabConfig[t];
+          const crawled = ts.filter((s) => crawledMap[s]).length;
+          return (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`px-4 py-1.5 rounded text-sm font-medium transition-colors ${
+                tab === t
+                  ? "bg-indigo-600 text-white"
+                  : "bg-slate-800 text-slate-400 hover:text-white"
+              }`}
+            >
+              {label}
+              <span className="ml-2 text-xs font-mono opacity-60">{crawled}/{ts.length}</span>
+            </button>
+          );
+        })}
       </div>
 
       <div className="space-y-1 max-h-[600px] overflow-y-auto pr-1">
@@ -260,6 +269,7 @@ export function SuburbList({ nswSuburbs, vicSuburbs, crawledMap, docsBySuburb }:
           <SuburbRow
             key={suburb}
             suburb={suburb}
+            region={region}
             crawled={crawledMap[suburb]}
             docs={docsBySuburb[suburb] ?? []}
           />

@@ -3,6 +3,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sha256 } from "@/lib/utils/hash";
 import { normaliseAddress } from "@/lib/utils/address";
+import { getRegion } from "./postcodes";
 
 const STREET_TYPES = "Street|St|Road|Rd|Avenue|Ave|Drive|Dr|Lane|Ln|Place|Pl|Court|Ct|Crescent|Cres|Boulevard|Blvd|Way|Close|Cl|Parade|Pde|Terrace|Tce|Circuit|Cct";
 const ADDRESS_REGEX = new RegExp(
@@ -10,15 +11,17 @@ const ADDRESS_REGEX = new RegExp(
   "i"
 );
 
-function extractAddressFromUrl(url: string): string | null {
-  const filename = decodeURIComponent(url.split("/").pop() ?? "")
-    .replace(/\.pdf$/i, "")
-    .replace(/[_-]/g, " ")
-    .replace(/SP\s*\d+/gi, "")
-    .replace(/strata\s*plan\s*\d+/gi, "")
-    .replace(/by\s*laws?/gi, "")
-    .replace(/\s+/g, " ")
-    .trim();
+function extractAddressFromUrl(url: string, region: "au" | "us"): string | null {
+  const auClean = region === "au"
+    ? (s: string) => s.replace(/SP\s*\d+/gi, "").replace(/strata\s*plan\s*\d+/gi, "").replace(/by\s*laws?/gi, "")
+    : (s: string) => s.replace(/cc&?rs?/gi, "").replace(/bylaws?/gi, "").replace(/declaration/gi, "").replace(/hoa/gi, "");
+
+  const filename = auClean(
+    decodeURIComponent(url.split("/").pop() ?? "")
+      .replace(/\.pdf$/i, "")
+      .replace(/[_-]/g, " ")
+  ).replace(/\s+/g, " ").trim();
+
   const match = filename.match(ADDRESS_REGEX);
   return match ? match[0] : null;
 }
@@ -48,6 +51,7 @@ export async function ingestPdfLight(
     return { ok: false, reason: "Download failed or timed out" };
   }
 
+  const region = getRegion(suburb);
   const fileHash = sha256(buffer.toString("base64"));
   const { data: existing } = await supabase
     .from("documents")
@@ -56,7 +60,7 @@ export async function ingestPdfLight(
     .single();
   if (existing) return { ok: false, reason: "Duplicate" };
 
-  const addressRaw = extractAddressFromUrl(url) ?? suburb;
+  const addressRaw = extractAddressFromUrl(url, region) ?? suburb;
   const addressNormalised = await normaliseAddress(addressRaw);
 
   const { data: property, error: propError } = await supabase
@@ -78,17 +82,23 @@ export async function ingestPdfLight(
 
   if (uploadError) return { ok: false, reason: "Storage upload failed" };
 
+  const docType = region === "us" ? "hoa" : "strata";
+  const defaultLabel = region === "us"
+    ? `HOA/Condo Bylaws — ${suburb}`
+    : `Strata By-Laws — ${suburb}`;
+
   const { data: doc, error: docError } = await supabase
     .from("documents")
     .insert({
       property_id: property.id,
-      type: "strata",
-      label: addressRaw !== suburb ? addressRaw : `Strata By-Laws — ${suburb}`,
+      type: docType,
+      label: addressRaw !== suburb ? addressRaw : defaultLabel,
       source_url: url,
       storage_path: storagePath,
       file_hash: fileHash,
       crawl_suburb: suburb,
       ingested_via: "crawler",
+      region,
     })
     .select()
     .single();

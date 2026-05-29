@@ -7,7 +7,7 @@ export const maxDuration = 300;
 
 export async function POST(req: NextRequest) {
   try {
-    const { suburb } = await req.json() as { suburb?: string };
+    const { suburb, region = "au" } = await req.json() as { suburb?: string; region?: "au" | "us" };
     if (!suburb) return NextResponse.json({ error: "suburb required" }, { status: 400 });
 
     if (!process.env.OPENAI_API_KEY) {

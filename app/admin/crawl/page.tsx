@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { createServiceClient } from "@/lib/supabase/server";
 import { NSW_SUBURBS } from "@/lib/crawler/suburbs-nsw";
 import { VIC_SUBURBS } from "@/lib/crawler/suburbs-vic";
+import { SEATTLE_NEIGHBORHOODS } from "@/lib/crawler/suburbs-seattle";
 import { SuburbList } from "./suburb-list";
 
 export default async function CrawlPage() {
@@ -31,7 +32,7 @@ export default async function CrawlPage() {
     docsBySuburb[s]!.push(doc);
   }
 
-  const allSuburbs = [...NSW_SUBURBS, ...VIC_SUBURBS];
+  const allSuburbs = [...NSW_SUBURBS, ...VIC_SUBURBS, ...SEATTLE_NEIGHBORHOODS];
   const totalCrawled = allSuburbs.filter((s) => crawledMap[s]).length;
   const totalDocs = (crawled ?? []).reduce((sum, r) => sum + (r.docs_found ?? 0), 0);
 
@@ -60,6 +61,7 @@ export default async function CrawlPage() {
       <SuburbList
         nswSuburbs={NSW_SUBURBS}
         vicSuburbs={VIC_SUBURBS}
+        seattleNeighborhoods={SEATTLE_NEIGHBORHOODS}
         crawledMap={crawledMap}
         docsBySuburb={docsBySuburb as Record<string, { id: string; label: string; source_url: string | null; processed_at: string | null; crawl_suburb: string | null }[]>}
       />

@@ -66,15 +66,51 @@ const POSTCODE_MAP: Record<string, string> = {
   "Ringwood VIC": "3134", "Croydon VIC": "3136", "Essendon VIC": "3040",
   "Geelong VIC": "3220", "Torquay VIC": "3228", "Ballarat VIC": "3350",
   "Bendigo VIC": "3550",
+  // Seattle metro — US ZIP codes
+  "Capitol Hill Seattle":     "98102",
+  "Belltown Seattle":         "98121",
+  "South Lake Union Seattle": "98109",
+  "Queen Anne Seattle":       "98119",
+  "Fremont Seattle":          "98103",
+  "Ballard Seattle":          "98107",
+  "West Seattle Seattle":     "98116",
+  "Columbia City Seattle":    "98118",
+  "Beacon Hill Seattle":      "98108",
+  "First Hill Seattle":       "98104",
+  "Pioneer Square Seattle":   "98104",
+  "Downtown Seattle":         "98101",
+  "Eastlake Seattle":         "98102",
+  "Madrona Seattle":          "98122",
+  "Madison Park Seattle":     "98112",
+  "Green Lake Seattle":       "98103",
+  "Wallingford Seattle":      "98103",
+  "University District Seattle": "98105",
+  "Northgate Seattle":        "98125",
+  "Redmond WA":               "98052",
+  "Bellevue WA":              "98004",
+  "Kirkland WA":              "98033",
+  "Mercer Island WA":         "98040",
+  "Renton WA":                "98055",
+  "Bothell WA":               "98011",
+  "Issaquah WA":              "98027",
+  "Shoreline WA":             "98133",
 };
 
 export function getPostcode(suburb: string): string | null {
   return POSTCODE_MAP[suburb] ?? null;
 }
 
+export function getRegion(suburb: string): "au" | "us" {
+  return suburb.includes("Seattle") || POSTCODE_MAP[suburb]?.length === 5
+    ? "us"
+    : "au";
+}
+
 export function getSearchTerms(suburb: string): { suburb: string; postcode: string | null; city: string } {
   const postcode = getPostcode(suburb);
-  // Strip state suffix for cleaner city name e.g. "Sydney CBD NSW" → "Sydney CBD"
-  const city = suburb.replace(/\s+(NSW|VIC|QLD|WA|SA|TAS|ACT|NT)$/i, "").trim();
+  const city = suburb
+    .replace(/\s+(NSW|VIC|QLD|SA|TAS|ACT|NT)$/i, "") // AU state suffixes (skip WA — ambiguous)
+    .replace(/\s+Seattle$/, "")                         // "Capitol Hill Seattle" → "Capitol Hill"
+    .trim();
   return { suburb, postcode, city };
 }
