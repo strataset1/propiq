@@ -610,6 +610,7 @@ export type Database = {
       attribute_value: "yes" | "no" | "maybe"
       document_type:
         | "strata"
+        | "hoa"
         | "building_inspection"
         | "contract"
         | "lease"
@@ -748,6 +749,7 @@ export const Constants = {
       attribute_value: ["yes", "no", "maybe"],
       document_type: [
         "strata",
+        "hoa",
         "building_inspection",
         "contract",
         "lease",
