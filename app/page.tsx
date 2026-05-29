@@ -238,7 +238,7 @@ export default function HomePage() {
         <div className="relative max-w-3xl mx-auto px-6 pt-20 pb-10 w-full">
           <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-3 py-1 mb-6">
             <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full" />
-            <span className="text-emerald-400 text-xs font-medium">Official Australian strata records</span>
+            <span className="text-emerald-400 text-xs font-medium">Official strata &amp; HOA records</span>
           </div>
 
           <h1 className="text-5xl font-bold text-white leading-tight mb-5">
@@ -246,7 +246,7 @@ export default function HomePage() {
             <span className="text-amber-400">before you sign the lease.</span>
           </h1>
           <p className="text-slate-300 text-lg mb-10 leading-relaxed">
-            Search any strata building in Australia to instantly see what&apos;s allowed — pets, short-term rentals, renovations — and download the original by-law document.
+            Search any strata or HOA building to instantly see what&apos;s allowed — pets, short-term rentals, renovations — and download the original by-law document.
           </p>
 
           {/* Search */}
@@ -386,7 +386,7 @@ export default function HomePage() {
           )}
 
           <p className="text-slate-500 text-sm mt-3">
-            Instant results · Original PDF included · NSW, VIC &amp; more
+            Instant results · Original PDF included · Australia, USA &amp; more
           </p>
 
           {stats && (
@@ -394,7 +394,7 @@ export default function HomePage() {
               {[
                 { n: stats.propertyCount.toLocaleString(), label: "Properties" },
                 { n: stats.documentCount.toLocaleString(), label: "Documents"  },
-                { n: "3",                                  label: "States"     },
+                { n: "2",                                  label: "Countries"  },
               ].map(({ n, label }) => (
                 <div key={label} className="bg-slate-900/60 border border-slate-800 rounded-xl p-3 text-center">
                   <p className="text-white font-bold text-lg">{n}</p>
@@ -414,8 +414,8 @@ export default function HomePage() {
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-6">How it works</p>
               <div className="space-y-6">
                 {[
-                  { step: "1", title: "Search an address or postcode", desc: "Enter any strata property address, suburb, or postcode — all matching properties appear instantly." },
-                  { step: "2", title: "Click a property", desc: "Select the address you need. You'll see the categories covered in its by-laws." },
+                  { step: "1", title: "Search an address or postcode", desc: "Enter any strata or HOA property address, suburb, or postcode — all matching properties appear instantly." },
+                  { step: "2", title: "Click a property", desc: "Select the address you need. You'll see the categories covered in its strata or HOA by-laws." },
                   { step: "3", title: "Unlock & download", desc: "Pay $9.95 to unlock the full by-law summary and download the original PDF document." },
                 ].map((s) => (
                   <div key={s.step} className="flex gap-4">
@@ -439,7 +439,7 @@ export default function HomePage() {
               <div>
                 <p className="text-white font-semibold text-sm">Verified, official records</p>
                 <p className="text-slate-400 text-sm mt-1 leading-relaxed">
-                  Documents are sourced from licensed strata managers and official Australian state land registries.
+                  Documents are sourced from licensed strata managers, HOA management companies, and official land registries.
                 </p>
               </div>
             </div>

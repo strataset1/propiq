@@ -26,22 +26,22 @@ export default function AboutPage() {
             <span className="text-amber-400 text-xs font-medium">About ByLawsIndex.com</span>
           </div>
           <h1 className="text-4xl sm:text-5xl font-bold text-white leading-tight mb-5">
-            Australia&apos;s strata<br />
+            The strata &amp; HOA<br />
             <span className="text-amber-400">by-law intelligence platform.</span>
           </h1>
           <p className="text-slate-300 text-xl leading-relaxed">
-            ByLawsIndex.com makes strata by-law data accessible to everyone — whether you&apos;re a renter checking if you can keep a dog, a buyer assessing investment risk, or a PropTech platform needing bulk data at scale.
+            ByLawsIndex.com makes strata and HOA by-law data accessible to everyone — whether you&apos;re a renter checking if you can keep a dog, a buyer assessing investment risk, or a PropTech platform needing bulk data at scale.
           </p>
         </div>
 
-        {/* What is strata? */}
+        {/* What is strata / HOA? */}
         <div>
-          <h2 className="text-2xl font-bold text-white mb-4">What is strata?</h2>
+          <h2 className="text-2xl font-bold text-white mb-4">What are strata &amp; HOA by-laws?</h2>
           <p className="text-slate-300 text-lg leading-relaxed mb-4">
-            Over 3 million Australians live in strata properties — apartments, townhouses, and units governed by a body corporate or owners corporation. Every strata scheme has a set of by-laws: legally binding rules that dictate what owners and tenants can and can&apos;t do.
+            Millions of people worldwide live in strata or HOA-governed properties — apartments, condominiums, townhouses, and units managed by a body corporate, owners corporation, or homeowners association. Every scheme has a set of by-laws: legally binding rules that dictate what owners and tenants can and can&apos;t do.
           </p>
           <p className="text-slate-300 text-lg leading-relaxed">
-            These by-laws cover everything from whether you can keep pets and renovate your kitchen, to who&apos;s financially responsible when the building&apos;s cladding needs to be replaced. Until now, accessing this information has required knowing exactly where to look — and often paying a solicitor to interpret it.
+            These rules cover everything from whether you can keep pets and renovate your kitchen, to who&apos;s financially responsible when the building needs major repairs. Until now, accessing this information has required knowing exactly where to look — and often paying a solicitor or attorney to interpret it.
           </p>
         </div>
 
@@ -49,14 +49,14 @@ export default function AboutPage() {
         <div>
           <h2 className="text-2xl font-bold text-white mb-4">What we do</h2>
           <p className="text-slate-300 text-lg leading-relaxed mb-6">
-            We source by-law documents directly from licensed strata managers and official Australian state land registries, then use AI trained on Australian property law to extract the key data points that actually matter.
+            We source by-law documents directly from licensed strata managers, HOA management companies, and official land registries, then use AI trained on property law across multiple jurisdictions to extract the key data points that actually matter.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {[
-              { icon: "🔍", title: "Instant search", desc: "Search any address or suburb and see by-law data in seconds." },
-              { icon: "🤖", title: "AI extraction", desc: "Claude AI reads every document and extracts 12 structured data points per property." },
+              { icon: "🔍", title: "Instant search", desc: "Search any address, suburb, or ZIP code and see strata or HOA by-law data in seconds." },
+              { icon: "🤖", title: "AI extraction", desc: "Claude AI reads every document and extracts 12 structured data points per property — across AU and US formats." },
               { icon: "📄", title: "Original documents", desc: "Download the verified PDF directly — not a summary, the actual document." },
-              { icon: "🔌", title: "API access", desc: "Integrate strata intelligence into your own platform via our REST API." },
+              { icon: "🔌", title: "API access", desc: "Integrate strata and HOA intelligence into your own platform via our REST API." },
             ].map((f) => (
               <div key={f.title} className="bg-slate-900 border border-slate-800 rounded-xl p-5">
                 <span className="text-2xl">{f.icon}</span>
@@ -80,7 +80,7 @@ export default function AboutPage() {
                 Anyone can use the public search to look up a property and see its by-law summary for free. If you want the original PDF document, it&apos;s a one-time purchase for $9.95 — no account required.
               </p>
               <ul className="mt-3 space-y-1.5">
-                {["Renters checking pet and renovation rules before signing", "Buyers assessing levy exposure and defect risk", "Investors evaluating short-term rental viability"].map(i => (
+                {["Renters checking pet and renovation rules before signing", "Buyers assessing levy or special assessment exposure and defect risk", "Investors evaluating short-term rental viability"].map(i => (
                   <li key={i} className="text-slate-400 text-sm flex items-start gap-2">
                     <span className="text-amber-400 mt-0.5">→</span>{i}
                   </li>
@@ -93,7 +93,7 @@ export default function AboutPage() {
                 Professional teams access ByLawsIndex.com via API. Business accounts get a monthly quota of property lookups, bulk search, webhook delivery, and custom data fields. Pricing is based on usage volume.
               </p>
               <ul className="mt-3 space-y-1.5">
-                {["Property portals embedding strata insights in listings", "Conveyancers running automated due diligence", "Mortgage brokers and valuers assessing strata risk at scale"].map(i => (
+                {["Property portals embedding strata and HOA insights in listings", "Conveyancers and real estate attorneys running automated due diligence", "Mortgage brokers and valuers assessing property rule risk at scale"].map(i => (
                   <li key={i} className="text-slate-400 text-sm flex items-start gap-2">
                     <span className="text-amber-400 mt-0.5">→</span>{i}
                   </li>
@@ -112,7 +112,7 @@ export default function AboutPage() {
             <div>
               <p className="text-emerald-400 font-semibold mb-2">Official, verified data</p>
               <p className="text-slate-300 leading-relaxed">
-                All documents on ByLawsIndex.com are sourced from licensed strata managers and official Australian state land registries.
+                All documents on ByLawsIndex.com are sourced from licensed strata managers, HOA management companies, and official land registries.
               </p>
             </div>
           </div>
