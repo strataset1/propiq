@@ -16,61 +16,17 @@ export default async function PropertyPage({ params }: { params: Promise<{ id: s
 
   const [
     { data: property },
-    { data: bylawsCheck },
+    { data: bylaws },
     { data: docs },
-    { data: liabCheck },
+    { data: liab },
   ] = await Promise.all([
     supabase.from("properties").select("id, address_raw").eq("id", id).maybeSingle(),
     supabase.from("strata_bylaws").select("id").eq("property_id", id).limit(1).maybeSingle(),
-    supabase.from("documents").select("id, label, type, storage_path").eq("property_id", id).not("processed_at", "is", null).limit(10),
+    supabase.from("documents").select("id, label, type").eq("property_id", id).not("processed_at", "is", null).limit(10),
     supabase.from("strata_liability_extractions").select("id").eq("property_id", id).limit(1).maybeSingle(),
   ]);
 
   if (!property) notFound();
-
-  // Check if any document for this property has been purchased
-  const docIds = (docs ?? []).map((d) => d.id);
-  const { data: purchase } = docIds.length > 0
-    ? await supabase.from("purchases").select("document_id").in("document_id", docIds).limit(1).maybeSingle()
-    : { data: null };
-
-  const isPurchased = !!purchase;
-
-  // If purchased, fetch the full extracted data and generate a signed download URL
-  let bylawData = null;
-  let liabilityData = null;
-  let downloadUrl: string | null = null;
-
-  if (isPurchased) {
-    const [{ data: bylaws }, { data: liab }] = await Promise.all([
-      supabase
-        .from("strata_bylaws")
-        .select("pets_allowed_value, short_term_rental_value, interior_renovations_value, exterior_renovations_value, confidence")
-        .eq("property_id", id)
-        .order("processed_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-      supabase
-        .from("strata_liability_extractions")
-        .select("combustible_cladding_summary, combustible_cladding_responsible_party, combustible_cladding_source, building_defect_summary, building_defect_responsible_party, building_defect_source, str_rules_summary, str_rules_responsible_party, str_rules_source, maintenance_responsibility_summary, maintenance_responsibility_responsible_party, maintenance_responsibility_source, insurance_excess_summary, insurance_excess_responsible_party, insurance_excess_source, special_levy_summary, special_levy_responsible_party, special_levy_source, mixed_use_occupancy_summary, mixed_use_occupancy_responsible_party, mixed_use_occupancy_source, pets_summary, pets_responsible_party, pets_source")
-        .eq("property_id", id)
-        .order("processed_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-    ]);
-
-    bylawData = bylaws ?? null;
-    liabilityData = liab ?? null;
-
-    // Generate a 1-hour signed URL for the purchased document
-    const purchasedDoc = (docs ?? []).find((d) => d.id === purchase.document_id);
-    if (purchasedDoc?.storage_path) {
-      const { data: signed } = await supabase.storage
-        .from("property-documents")
-        .createSignedUrl(purchasedDoc.storage_path, 60 * 60);
-      downloadUrl = signed?.signedUrl ?? null;
-    }
-  }
 
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col">
@@ -96,13 +52,9 @@ export default async function PropertyPage({ params }: { params: Promise<{ id: s
 
         <PropertyView
           address={property.address_raw ?? "Unknown address"}
-          hasBylaws={!!bylawsCheck}
-          hasLiability={!!liabCheck}
-          docs={(docs ?? []).map(({ id, label, type }) => ({ id, label, type }))}
-          isPurchased={isPurchased}
-          bylawData={bylawData}
-          liabilityData={liabilityData as Record<string, string | number | null> | null}
-          downloadUrl={downloadUrl}
+          hasBylaws={!!bylaws}
+          hasLiability={!!liab}
+          docs={docs ?? []}
         />
       </div>
     </div>
