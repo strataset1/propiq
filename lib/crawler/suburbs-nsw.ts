@@ -1,192 +1,161 @@
+// NSW suburbs with significant strata/apartment density.
+// Focused on inner-city, high-density coastal, and major urban centres.
+// Rural towns and low-density outer suburbs excluded — unlikely to have
+// publicly indexed strata by-law PDFs.
 export const NSW_SUBURBS: string[] = [
-  // Sydney CBD & Surrounds
-  "Sydney CBD NSW", "Haymarket NSW", "Pyrmont NSW", "Ultimo NSW", "Glebe NSW",
-  "Surry Hills NSW", "Darlinghurst NSW", "Potts Point NSW", "Elizabeth Bay NSW",
-  "Kings Cross NSW", "Rushcutters Bay NSW", "Edgecliff NSW", "Paddington NSW",
-  "Woollahra NSW", "Double Bay NSW", "Rose Bay NSW", "Vaucluse NSW",
-  "Watsons Bay NSW", "Bondi NSW", "Bondi Beach NSW", "Bondi Junction NSW",
-  "Tamarama NSW", "Bronte NSW", "Clovelly NSW", "Randwick NSW",
-  "Kensington NSW", "Kingsford NSW", "Coogee NSW", "Maroubra NSW",
-  "Malabar NSW", "Mascot NSW", "Botany NSW", "Waterloo NSW",
-  "Zetland NSW", "Rosebery NSW", "Alexandria NSW", "Beaconsfield NSW",
-  "Erskineville NSW", "Newtown NSW", "St Peters NSW", "Sydenham NSW",
-  "Marrickville NSW", "Dulwich Hill NSW", "Petersham NSW", "Summer Hill NSW",
-  "Annandale NSW", "Camperdown NSW", "Redfern NSW", "Chippendale NSW",
-  "Eveleigh NSW", "Zetland NSW",
+  // ── Sydney CBD & immediate surrounds ─────────────────────────────
+  "Sydney CBD NSW",       // 2000 — highest density, massive strata stock
+  "Haymarket NSW",        // 2000 — dense, adjoins CBD
+  "Pyrmont NSW",          // 2009 — apartment-heavy peninsula
+  "Ultimo NSW",           // 2007 — student/inner city apartments
+  "Chippendale NSW",      // 2008 — dense new developments
+  "Glebe NSW",            // 2037 — significant apartment stock
+  "Surry Hills NSW",      // 2010 — very high density
+  "Darlinghurst NSW",     // 2010 — very high density
+  "Potts Point NSW",      // 2011 — one of Australia's densest suburbs
+  "Elizabeth Bay NSW",    // 2011 — dense apartment suburb
+  "Kings Cross NSW",      // 2011 — dense
+  "Rushcutters Bay NSW",  // 2011
 
-  // Inner West
-  "Balmain NSW", "Balmain East NSW", "Rozelle NSW", "Leichhardt NSW", "Lilyfield NSW",
-  "Ashfield NSW", "Burwood NSW", "Croydon NSW", "Strathfield NSW",
-  "Homebush NSW", "Homebush West NSW", "Concord NSW", "Concord West NSW",
-  "Rhodes NSW", "Meadowbank NSW", "Haberfield NSW", "Five Dock NSW",
-  "Abbotsford NSW", "Drummoyne NSW", "Russell Lea NSW", "Wareemba NSW",
-  "Rodd Point NSW", "Canada Bay NSW",
+  // ── Inner East ───────────────────────────────────────────────────
+  "Paddington NSW",       // 2021 — terraces + apartments
+  "Woollahra NSW",        // 2025
+  "Edgecliff NSW",        // 2027
+  "Double Bay NSW",       // 2028 — high-value strata
+  "Rose Bay NSW",         // 2029
+  "Bondi NSW",            // 2026 — major apartment zone
+  "Bondi Beach NSW",      // 2026
+  "Bondi Junction NSW",   // 2022 — high density
+  "Tamarama NSW",         // 2026
+  "Bronte NSW",           // 2024
+  "Clovelly NSW",         // 2031
+  "Randwick NSW",         // 2031
+  "Coogee NSW",           // 2034 — beach apartments
+  "Maroubra NSW",         // 2035
 
-  // Inner North
-  "Crows Nest NSW", "St Leonards NSW", "Artarmon NSW", "Wollstonecraft NSW",
-  "Waverton NSW", "Greenwich NSW", "Longueville NSW", "Northwood NSW",
-  "Lane Cove NSW", "Lane Cove West NSW", "Lane Cove North NSW",
-  "North Sydney NSW", "Kirribilli NSW", "Milsons Point NSW",
-  "Lavender Bay NSW", "McMahons Point NSW", "Neutral Bay NSW",
-  "Cremorne NSW", "Cremorne Point NSW", "Mosman NSW", "Spit Junction NSW",
-  "Balmoral NSW", "Cammeray NSW", "Naremburn NSW",
+  // ── Inner South / Alexandria Corridor ────────────────────────────
+  "Waterloo NSW",         // 2017 — major new apartment precinct
+  "Zetland NSW",          // 2017 — rapidly densifying
+  "Rosebery NSW",         // 2018
+  "Alexandria NSW",       // 2015 — converted warehouses + new builds
+  "Beaconsfield NSW",     // 2015
+  "Redfern NSW",          // 2016 — significant apartment stock
+  "Mascot NSW",           // 2020 — major unit zone near airport
+  "Wolli Creek NSW",      // 2205 — very high density new apartments
+  "Arncliffe NSW",        // 2205
 
-  // Lower North Shore / Ryde
-  "Gladesville NSW", "Hunters Hill NSW", "Ryde NSW", "West Ryde NSW",
-  "Meadowbank NSW", "Shepherd's Bay NSW", "North Ryde NSW", "Macquarie Park NSW",
-  "Eastwood NSW", "Epping NSW", "Carlingford NSW", "Dundas NSW",
-  "Telopea NSW", "Rydalmere NSW", "Ermington NSW",
+  // ── Inner West ───────────────────────────────────────────────────
+  "Erskineville NSW",     // 2043
+  "Newtown NSW",          // 2042
+  "St Peters NSW",        // 2044
+  "Sydenham NSW",         // 2044
+  "Marrickville NSW",     // 2204
+  "Dulwich Hill NSW",     // 2203
+  "Petersham NSW",        // 2049
+  "Annandale NSW",        // 2038
+  "Camperdown NSW",       // 2050
+  "Balmain NSW",          // 2041 — heritage + strata
+  "Rozelle NSW",          // 2039
+  "Leichhardt NSW",       // 2040
+  "Burwood NSW",          // 2134 — major apartment corridor
+  "Strathfield NSW",      // 2135
+  "Homebush NSW",         // 2140 — Olympic precinct apartments
+  "Rhodes NSW",           // 2138 — very high density new precinct
+  "Meadowbank NSW",       // 2114
+  "Drummoyne NSW",        // 2047
 
-  // Northern Beaches
-  "Manly NSW", "Fairlight NSW", "Balgowlah NSW", "Balgowlah Heights NSW",
-  "Seaforth NSW", "Clontarf NSW", "Manly Vale NSW", "Brookvale NSW",
-  "Dee Why NSW", "Collaroy NSW", "Narrabeen NSW", "Mona Vale NSW",
-  "Newport NSW", "Avalon Beach NSW", "Bilgola Beach NSW", "Whale Beach NSW",
-  "Palm Beach NSW", "Warriewood NSW", "Narraweena NSW", "Curl Curl NSW",
-  "Freshwater NSW", "Queenscliff NSW", "North Manly NSW", "Beacon Hill NSW",
-  "Frenchs Forest NSW", "Belrose NSW", "Davidson NSW", "Forestville NSW",
-  "Terrey Hills NSW", "Oxford Falls NSW", "Allambie Heights NSW",
-  "Cromer NSW", "Wheeler Heights NSW", "Ingleside NSW",
+  // ── Inner North ──────────────────────────────────────────────────
+  "North Sydney NSW",     // 2060 — CBD equivalent density
+  "Kirribilli NSW",       // 2061
+  "Milsons Point NSW",    // 2061
+  "Neutral Bay NSW",      // 2089
+  "Cremorne NSW",         // 2090
+  "Mosman NSW",           // 2088
+  "Crows Nest NSW",       // 2065
+  "St Leonards NSW",      // 2065 — major apartment hub
+  "Wollstonecraft NSW",   // 2065
+  "Waverton NSW",         // 2060
+  "Cammeray NSW",         // 2062
 
-  // Upper North Shore
-  "Chatswood NSW", "Chatswood West NSW", "Roseville NSW", "Roseville Chase NSW",
-  "Lindfield NSW", "East Lindfield NSW", "Killara NSW", "East Killara NSW",
-  "Gordon NSW", "Pymble NSW", "West Pymble NSW", "St Ives NSW", "St Ives Chase NSW",
-  "Turramurra NSW", "North Turramurra NSW", "South Turramurra NSW",
-  "Wahroonga NSW", "Warrawee NSW", "Waitara NSW", "Hornsby NSW", "Hornsby Heights NSW",
-  "Beecroft NSW", "Cheltenham NSW", "Pennant Hills NSW", "Thornleigh NSW",
-  "Westleigh NSW", "Mount Colah NSW", "Asquith NSW", "Brooklyn NSW",
+  // ── Lower North Shore / Ryde ─────────────────────────────────────
+  "Chatswood NSW",        // 2067 — very high density
+  "Lane Cove NSW",        // 2066
+  "Ryde NSW",             // 2112
+  "West Ryde NSW",        // 2114
+  "Meadowbank NSW",       // 2114 — (already listed)
+  "North Ryde NSW",       // 2113
+  "Macquarie Park NSW",   // 2113 — major apartment precinct
+  "Epping NSW",           // 2121
 
-  // Hills District
-  "Castle Hill NSW", "Baulkham Hills NSW", "Kellyville NSW", "Rouse Hill NSW",
-  "Bella Vista NSW", "Norwest NSW", "Winston Hills NSW", "Northmead NSW",
-  "Glenwood NSW", "Stanhope Gardens NSW", "Schofields NSW", "Marsden Park NSW",
-  "Box Hill NSW", "Nelson NSW", "Vineyard NSW",
+  // ── Upper North Shore ────────────────────────────────────────────
+  "Roseville NSW",        // 2069
+  "Lindfield NSW",        // 2070
+  "Killara NSW",          // 2071
+  "Gordon NSW",           // 2072
 
-  // Western Sydney
-  "Parramatta NSW", "Westmead NSW", "Granville NSW", "Harris Park NSW",
-  "Merrylands NSW", "Merrylands West NSW", "Guildford NSW", "Guildford West NSW",
-  "Pendle Hill NSW", "Wentworthville NSW", "Toongabbie NSW", "Old Toongabbie NSW",
-  "Seven Hills NSW", "Blacktown NSW", "Kings Langley NSW", "Marayong NSW",
-  "Woodcroft NSW", "Quakers Hill NSW", "Doonside NSW", "Rooty Hill NSW",
-  "Mount Druitt NSW", "Emerton NSW", "Bidwill NSW", "Shalvey NSW",
-  "Penrith NSW", "St Marys NSW", "St Clair NSW", "Erskine Park NSW",
-  "Kingswood NSW", "Werrington NSW", "Glenmore Park NSW", "Jamisontown NSW",
-  "Springwood NSW", "Blaxland NSW", "Glenbrook NSW",
+  // ── Northern Beaches ─────────────────────────────────────────────
+  "Manly NSW",            // 2095 — dense beach apartments
+  "Fairlight NSW",        // 2094
+  "Freshwater NSW",       // 2096
+  "Dee Why NSW",          // 2099 — high-density beach suburb
+  "Narrabeen NSW",        // 2101
+  "Collaroy NSW",         // 2097
+  "Mona Vale NSW",        // 2103
+  "Newport NSW",          // 2106
+  "Avalon Beach NSW",     // 2107
+  "Palm Beach NSW",       // 2108
 
-  // South Western Sydney
-  "Liverpool NSW", "Casula NSW", "Prestons NSW", "Miller NSW", "Lurnea NSW",
-  "Moorebank NSW", "Chipping Norton NSW", "Warwick Farm NSW", "Cabramatta NSW",
-  "Canley Heights NSW", "Canley Vale NSW", "Wetherill Park NSW", "Fairfield NSW",
-  "Fairfield East NSW", "Prairiewood NSW", "Bonnyrigg NSW", "Bonnyrigg Heights NSW",
-  "Bossley Park NSW", "Greenfield Park NSW", "Wakeley NSW",
-  "Campbelltown NSW", "Minto NSW", "Ingleburn NSW", "Macquarie Fields NSW",
-  "Glenfield NSW", "Leumeah NSW", "Bradbury NSW", "Ambarvale NSW",
-  "Rosemeadow NSW", "Eagle Vale NSW", "Raby NSW", "Bow Bowing NSW",
-  "Narellan NSW", "Narellan Vale NSW", "Mount Annan NSW", "Currans Hill NSW",
-  "Oran Park NSW", "Leppington NSW", "Austral NSW", "Edmondson Park NSW",
+  // ── Western Sydney key hubs ──────────────────────────────────────
+  "Parramatta NSW",       // 2150 — major apartment boom
+  "Westmead NSW",         // 2145
+  "Harris Park NSW",      // 2150
+  "Granville NSW",        // 2142
+  "Merrylands NSW",       // 2160
+  "Liverpool NSW",        // 2170 — growing density
+  "Hornsby NSW",          // 2077 — significant unit stock
 
-  // Canterbury-Bankstown
-  "Bankstown NSW", "Lakemba NSW", "Punchbowl NSW", "Greenacre NSW",
-  "Campsie NSW", "Belmore NSW", "Canterbury NSW", "Kingsgrove NSW",
-  "Regents Park NSW", "Yagoona NSW", "Birrong NSW", "Bass Hill NSW",
-  "Chester Hill NSW", "Sefton NSW", "Berala NSW", "Lidcombe NSW",
-  "Auburn NSW", "Flemington NSW",
+  // ── South Sydney / St George ─────────────────────────────────────
+  "Hurstville NSW",       // 2220 — high density
+  "Kogarah NSW",          // 2217
+  "Rockdale NSW",         // 2216
+  "Cronulla NSW",         // 2230 — beach apartments
+  "Caringbah NSW",        // 2229
+  "Miranda NSW",          // 2228
+  "Sutherland NSW",       // 2232
+  "Kingsgrove NSW",       // 2208
 
-  // South Sydney / St George
-  "Hurstville NSW", "Kogarah NSW", "Rockdale NSW", "Arncliffe NSW",
-  "Wolli Creek NSW", "Eastlakes NSW", "Kingsgrove NSW", "Beverly Hills NSW",
-  "Penshurst NSW", "Mortdale NSW", "Oatley NSW", "Bexley NSW",
-  "Bexley North NSW", "Peakhurst NSW", "Peakhurst Heights NSW",
-  "Narwee NSW", "Riverwood NSW", "Padstow NSW", "Padstow Heights NSW",
-  "Revesby NSW", "Revesby Heights NSW", "Panania NSW", "Milperra NSW",
-  "Georges Hall NSW", "Chullora NSW", "Villawood NSW",
+  // ── Canterbury-Bankstown ─────────────────────────────────────────
+  "Bankstown NSW",        // 2200
+  "Campsie NSW",          // 2194
+  "Canterbury NSW",       // 2193
+  "Burwood NSW",          // 2134 — (already listed)
 
-  // Sutherland / Cronulla
-  "Cronulla NSW", "Caringbah NSW", "Caringbah South NSW", "Miranda NSW",
-  "Sutherland NSW", "Kirrawee NSW", "Gymea NSW", "Gymea Bay NSW",
-  "Engadine NSW", "Menai NSW", "Loftus NSW", "Como NSW",
-  "Jannali NSW", "Oyster Bay NSW", "Bonnet Bay NSW", "Illawong NSW",
-  "Bangor NSW", "Barden Ridge NSW", "Alfords Point NSW", "Lucas Heights NSW",
-  "Woronora NSW", "Woronora Heights NSW", "Kurnell NSW",
-  "Taren Point NSW", "Woolooware NSW", "Burraneer NSW",
-  "Bundeena NSW", "Maianbar NSW", "Waterfall NSW",
+  // ── Newcastle / Hunter ───────────────────────────────────────────
+  "Newcastle NSW",        // 2300 — CBD apartments
+  "Newcastle West NSW",   // 2302
+  "Hamilton NSW",         // 2303
+  "Merewether NSW",       // 2291 — beach apartments
+  "Cooks Hill NSW",       // 2300
+  "The Junction NSW",     // 2291
+  "Charlestown NSW",      // 2290
+  "New Lambton NSW",      // 2305
 
-  // Newcastle / Hunter
-  "Newcastle NSW", "Newcastle West NSW", "Hamilton NSW", "Hamilton North NSW",
-  "Hamilton South NSW", "Mayfield NSW", "Mayfield East NSW", "Mayfield West NSW",
-  "Broadmeadow NSW", "Charlestown NSW", "Merewether NSW", "Bar Beach NSW",
-  "Cooks Hill NSW", "The Junction NSW", "Jesmond NSW", "Kotara NSW",
-  "Adamstown NSW", "Adamstown Heights NSW", "New Lambton NSW", "New Lambton Heights NSW",
-  "Wallsend NSW", "Maryville NSW", "Wickham NSW", "Carrington NSW",
-  "Stockton NSW", "Islington NSW", "Tighes Hill NSW", "Georgetown NSW",
-  "Waratah NSW", "Waratah West NSW", "Callaghan NSW",
-  "Lambton NSW", "North Lambton NSW", "Elermore Vale NSW",
-  "Glendale NSW", "Cardiff NSW", "Warners Bay NSW", "Speers Point NSW",
-  "Belmont NSW", "Redhead NSW", "Dudley NSW",
-  "Cessnock NSW", "Maitland NSW", "East Maitland NSW", "Rutherford NSW",
-  "Thornton NSW", "Beresfield NSW", "Raymond Terrace NSW",
-  "Nelson Bay NSW", "Shoal Bay NSW", "Anna Bay NSW",
+  // ── Central Coast ────────────────────────────────────────────────
+  "Gosford NSW",          // 2250 — apartment hub
+  "Terrigal NSW",         // 2260 — beach strata
+  "Woy Woy NSW",          // 2256
+  "Umina Beach NSW",      // 2257
 
-  // Central Coast
-  "Gosford NSW", "Terrigal NSW", "Avoca Beach NSW", "Wamberal NSW",
-  "The Entrance NSW", "Long Jetty NSW", "Wyong NSW", "Tuggerah NSW",
-  "Erina NSW", "Green Point NSW", "Narara NSW", "Niagara Park NSW",
-  "Umina Beach NSW", "Woy Woy NSW", "Ettalong Beach NSW", "Booker Bay NSW",
-  "Kariong NSW", "Kincumber NSW", "Davistown NSW", "Saratoga NSW",
-  "Lisarow NSW", "Ourimbah NSW", "Toukley NSW", "Budgewoi NSW",
-  "Blue Haven NSW", "Lake Munmorah NSW", "Gorokan NSW",
-  "Bateau Bay NSW", "Shelly Beach NSW", "Forresters Beach NSW",
+  // ── Wollongong / Illawarra ───────────────────────────────────────
+  "Wollongong NSW",       // 2500 — CBD apartments
+  "North Wollongong NSW", // 2500
+  "Fairy Meadow NSW",     // 2519
+  "Thirroul NSW",         // 2515
+  "Kiama NSW",            // 2533 — coastal strata
 
-  // Wollongong / Illawarra
-  "Wollongong NSW", "North Wollongong NSW", "Gwynneville NSW",
-  "Figtree NSW", "Fairy Meadow NSW", "Thirroul NSW",
-  "Austinmer NSW", "Bulli NSW", "Corrimal NSW", "Towradgi NSW",
-  "Dapto NSW", "Kembla Grange NSW", "Albion Park NSW", "Albion Park Rail NSW",
-  "Shellharbour NSW", "Oak Flats NSW", "Mount Warrigal NSW",
-  "Kiama NSW", "Gerringong NSW", "Jamberoo NSW",
-  "Port Kembla NSW", "Warrawong NSW", "Windang NSW",
-  "Unanderra NSW", "Kanahooka NSW", "Horsley NSW",
-
-  // South Coast
-  "Nowra NSW", "Bomaderry NSW", "Callala Beach NSW", "Huskisson NSW",
-  "Vincentia NSW", "Culburra Beach NSW", "Greenwell Point NSW",
-  "Batemans Bay NSW", "Moruya NSW", "Narooma NSW",
-  "Merimbula NSW", "Pambula NSW", "Pambula Beach NSW",
-  "Eden NSW", "Bega NSW", "Bermagui NSW",
-
-  // Far North Coast
-  "Byron Bay NSW", "Ballina NSW", "Lennox Head NSW",
-  "Brunswick Heads NSW", "Ocean Shores NSW", "Bangalow NSW",
-  "Tweed Heads NSW", "Tweed Heads South NSW", "Tweed Heads West NSW",
-  "Banora Point NSW", "Murwillumbah NSW",
-  "Lismore NSW", "South Lismore NSW", "Goonellabah NSW",
-  "Casino NSW", "Kyogle NSW",
-
-  // Mid North Coast
-  "Coffs Harbour NSW", "Sawtell NSW", "Woolgoolga NSW", "Toormina NSW",
-  "Moonee Beach NSW", "Boambee East NSW",
-  "Port Macquarie NSW", "Hastings NSW", "Wauchope NSW",
-  "Taree NSW", "Forster NSW", "Tuncurry NSW",
-  "Kempsey NSW", "South West Rocks NSW",
-
-  // New England / Northern Tablelands
-  "Tamworth NSW", "South Tamworth NSW", "East Tamworth NSW",
-  "Armidale NSW", "Uralla NSW", "Inverell NSW",
-  "Moree NSW", "Narrabri NSW", "Walgett NSW",
-
-  // Central West
-  "Orange NSW", "Bathurst NSW", "Lithgow NSW",
-  "Dubbo NSW", "Mudgee NSW", "Cowra NSW", "Forbes NSW",
-  "Parkes NSW", "Broken Hill NSW",
-
-  // Riverina / Murray
-  "Wagga Wagga NSW", "Albury NSW", "Lavington NSW", "Thurgoona NSW",
-  "Griffith NSW", "Leeton NSW", "Narrandera NSW",
-  "Deniliquin NSW", "Young NSW", "Tumut NSW",
-
-  // Blue Mountains
-  "Katoomba NSW", "Leura NSW", "Wentworth Falls NSW",
-  "Lawson NSW", "Hazelbrook NSW", "Woodford NSW",
-  "Blackheath NSW", "Mount Victoria NSW",
+  // ── Byron Bay coastal strip ──────────────────────────────────────
+  "Byron Bay NSW",        // 2481 — high-value holiday strata
+  "Ballina NSW",          // 2478
+  "Lennox Head NSW",      // 2478
+  "Tweed Heads NSW",      // 2485 — major holiday apartment zone
 ];
