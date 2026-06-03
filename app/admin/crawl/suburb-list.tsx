@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { CrawlLocation } from "@/lib/crawler/suburbs-db";
 
@@ -236,6 +236,13 @@ export function SuburbList({ locations: initialLocations, crawledMap, docsBySubu
   const [importing, setImporting]         = useState(false);
   const [importMsg, setImportMsg]         = useState<{ text: string; ok: boolean } | null>(null);
 
+  // Bulk crawl state
+  const [bulkCrawling, setBulkCrawling] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState<{
+    current: number; total: number; suburb: string; docsFound: number; errors: number;
+  } | null>(null);
+  const stopBulkRef = useRef(false);
+
   // Active tab
   const allTabs = [
     ...[ ...new Set(locations.filter((l) => l.region === "au").map((l) => l.state))].sort()
@@ -271,6 +278,40 @@ export function SuburbList({ locations: initialLocations, crawledMap, docsBySubu
   }
 
   const stateOptions = importCountry === "au" ? AU_STATE_OPTIONS : US_STATE_OPTIONS;
+
+  async function handleBulkCrawl() {
+    const pending = tabLocations.filter((l) => l.enabled && !crawledMap[l.name]);
+    if (pending.length === 0) return;
+    stopBulkRef.current = false;
+    setBulkCrawling(true);
+    setBulkProgress({ current: 0, total: pending.length, suburb: "", docsFound: 0, errors: 0 });
+
+    let totalDocs = 0;
+    let totalErrors = 0;
+
+    for (let i = 0; i < pending.length; i++) {
+      if (stopBulkRef.current) break;
+      const loc = pending[i];
+      setBulkProgress({ current: i + 1, total: pending.length, suburb: loc.display_name, docsFound: totalDocs, errors: totalErrors });
+
+      try {
+        const res = await fetch("/api/admin/crawl/suburb", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ suburb: loc.name, region: loc.region }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) totalDocs += data.docsFound ?? 0;
+        else totalErrors++;
+      } catch {
+        totalErrors++;
+      }
+    }
+
+    setBulkCrawling(false);
+    setBulkProgress((p) => p ? { ...p, suburb: "Done", current: stopBulkRef.current ? p.current : pending.length } : null);
+    stopBulkRef.current = false;
+  }
 
   return (
     <div className="space-y-6">
@@ -330,13 +371,52 @@ export function SuburbList({ locations: initialLocations, crawledMap, docsBySubu
               );
             })}
 
-            {/* Crawl all pending in current tab */}
-            {pendingCount > 0 && (
-              <span className="ml-auto text-xs text-slate-500">
-                {pendingCount} pending in {currentTab?.label} — crawl individually below
-              </span>
-            )}
+            {/* Bulk crawl controls */}
+            <div className="ml-auto flex items-center gap-2">
+              {bulkCrawling ? (
+                <>
+                  <span className="text-xs text-amber-400 flex items-center gap-1.5">
+                    <svg className="animate-spin w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                    </svg>
+                    {bulkProgress ? `${bulkProgress.current}/${bulkProgress.total} — ${bulkProgress.suburb}` : "Starting…"}
+                  </span>
+                  <button
+                    onClick={() => { stopBulkRef.current = true; }}
+                    className="text-xs px-2.5 py-1 rounded border border-red-800 text-red-400 hover:bg-red-950/30 transition-colors">
+                    Stop
+                  </button>
+                </>
+              ) : bulkProgress?.suburb === "Done" ? (
+                <span className="text-xs text-emerald-400">
+                  Done — {bulkProgress.docsFound} doc{bulkProgress.docsFound !== 1 ? "s" : ""} found
+                  {bulkProgress.errors > 0 && `, ${bulkProgress.errors} error${bulkProgress.errors !== 1 ? "s" : ""}`}
+                </span>
+              ) : pendingCount > 0 ? (
+                <button
+                  onClick={handleBulkCrawl}
+                  className="text-xs px-3 py-1.5 rounded bg-indigo-700 hover:bg-indigo-600 text-white border border-indigo-600 transition-colors flex items-center gap-1.5">
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  Crawl all pending ({pendingCount})
+                </button>
+              ) : null}
+            </div>
           </div>
+
+          {/* Progress bar */}
+          {bulkCrawling && bulkProgress && (
+            <div className="mb-3">
+              <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-indigo-500 transition-all duration-300"
+                  style={{ width: `${Math.round((bulkProgress.current / bulkProgress.total) * 100)}%` }}
+                />
+              </div>
+            </div>
+          )}
 
           <div className="space-y-1 max-h-[520px] overflow-y-auto pr-1">
             {tabLocations.length === 0 && (
