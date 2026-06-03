@@ -16,7 +16,8 @@ export async function getCrawlLocations(supabase: SupabaseClient): Promise<Crawl
     .select("id, name, display_name, state, region, postcode, enabled")
     .eq("enabled", true)
     .order("state")
-    .order("display_name");
+    .order("display_name")
+    .limit(50000);
   return (data ?? []) as CrawlLocation[];
 }
 
@@ -25,7 +26,8 @@ export async function getAllCrawlLocations(supabase: SupabaseClient): Promise<Cr
     .from("crawl_locations")
     .select("id, name, display_name, state, region, postcode, enabled")
     .order("state")
-    .order("display_name");
+    .order("display_name")
+    .limit(50000);
   return (data ?? []) as CrawlLocation[];
 }
 
