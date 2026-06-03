@@ -89,7 +89,6 @@ export const SEATTLE_NEIGHBORHOODS = [
   "Lynnwood WA",
   "Mountlake Terrace WA",
   "Edmonds WA",
-  "Shoreline WA",
   "Marysville WA",
   "Arlington WA",
   "Stanwood WA",

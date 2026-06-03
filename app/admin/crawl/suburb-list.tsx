@@ -269,8 +269,11 @@ export function SuburbList({ locations: initialLocations, crawledMap, docsBySubu
     });
     const data = await res.json();
     if (res.ok) {
-      setImportMsg({ ok: true, text: `${data.total} suburb${data.total !== 1 ? "s" : ""} imported for ${importState}. Reload to see them.` });
-      setTimeout(() => window.location.reload(), 1200);
+      const msg = data.newlyAdded > 0
+        ? `${data.newlyAdded} new suburb${data.newlyAdded !== 1 ? "s" : ""} added${data.alreadyExisted > 0 ? `, ${data.alreadyExisted} already existed` : ""}.`
+        : `All ${data.total} suburbs already existed — nothing new to add.`;
+      setImportMsg({ ok: true, text: msg });
+      if (data.newlyAdded > 0) setTimeout(() => window.location.reload(), 1500);
     } else {
       setImportMsg({ ok: false, text: data.error ?? "Import failed" });
     }

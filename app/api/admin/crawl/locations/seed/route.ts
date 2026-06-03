@@ -145,10 +145,25 @@ export async function POST(req: NextRequest) {
   if (unique.length === 0) return NextResponse.json({ error: "No locations matched" }, { status: 400 });
 
   const supabase = createServiceClient();
+  // Count existing before upsert so we can report how many are new
+  const { count: existingCount } = await supabase
+    .from("crawl_locations")
+    .select("id", { count: "exact", head: true })
+    .in("name", unique.map((l) => l.name));
+
   const { error } = await supabase
     .from("crawl_locations")
     .upsert(unique, { onConflict: "name", ignoreDuplicates: true });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ ok: true, total: unique.length, state: filterState ?? "all" });
+
+  const alreadyExisted = existingCount ?? 0;
+  const newlyAdded = unique.length - alreadyExisted;
+  return NextResponse.json({
+    ok: true,
+    total: unique.length,
+    newlyAdded,
+    alreadyExisted,
+    state: filterState ?? "all",
+  });
 }
