@@ -26,7 +26,7 @@ const AU_STATE_OPTIONS = [
 ];
 
 const US_STATE_OPTIONS = [
-  { value: "WA (Seattle)", label: "Washington — Seattle metro" },
+  { value: "WA (Seattle)", label: "Washington State (WA)" },
   { value: "CA", label: "California (coming soon)", disabled: true },
   { value: "NY", label: "New York (coming soon)", disabled: true },
   { value: "FL", label: "Florida (coming soon)", disabled: true },
