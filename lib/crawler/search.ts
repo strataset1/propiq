@@ -13,6 +13,22 @@ const US_NOISE_DOMAINS = [
   "commerce.wa.gov", "courts.wa.gov",
 ];
 
+const US_STATE_NAMES: Record<string, string> = {
+  CA: "California", FL: "Florida", NY: "New York", TX: "Texas",
+  AZ: "Arizona", CO: "Colorado", IL: "Illinois", GA: "Georgia",
+  NC: "North Carolina", VA: "Virginia", OR: "Oregon", NV: "Nevada",
+  MA: "Massachusetts", MD: "Maryland", MI: "Michigan", OH: "Ohio",
+  MN: "Minnesota", PA: "Pennsylvania", TN: "Tennessee",
+  AL: "Alabama", AK: "Alaska", AR: "Arkansas", CT: "Connecticut",
+  DE: "Delaware", HI: "Hawaii", ID: "Idaho", IN: "Indiana",
+  IA: "Iowa", KS: "Kansas", KY: "Kentucky", LA: "Louisiana",
+  ME: "Maine", MS: "Mississippi", MO: "Missouri", MT: "Montana",
+  NE: "Nebraska", NH: "New Hampshire", NJ: "New Jersey", NM: "New Mexico",
+  ND: "North Dakota", OK: "Oklahoma", RI: "Rhode Island", SC: "South Carolina",
+  SD: "South Dakota", UT: "Utah", VT: "Vermont", WV: "West Virginia",
+  WI: "Wisconsin", WY: "Wyoming", WA: "Washington",
+};
+
 function isNoisy(url: string, region: "au" | "us"): boolean {
   const domains = region === "us" ? US_NOISE_DOMAINS : AU_NOISE_DOMAINS;
   return domains.some((d) => url.includes(d));
@@ -28,7 +44,6 @@ function extractPdfUrls(text: string): string[] {
   return [...new Set(matches)];
 }
 
-
 export type SearchResult = {
   url: string;
   title: string;
@@ -36,36 +51,121 @@ export type SearchResult = {
 };
 
 function buildAuPrompt(city: string, postcode: string | null, state: string | null): string {
-  const fullLocation = postcode ? `${city} ${postcode}` : state ? `${city} ${state}` : city;
+  const loc = postcode ? `${city} ${postcode}` : state ? `${city} ${state}` : city;
 
-  if (state === "SA") {
-    return `Search the web and find all publicly accessible strata and community title by-law PDF documents for ${fullLocation} South Australia.
+  if (state === "VIC") {
+    return `Search the web and find all publicly accessible owners corporation rules PDF documents for ${loc} Victoria, Australia.
 
 Search using all of these approaches:
-1. "${fullLocation}" "strata by-laws" filetype:pdf
-2. "${fullLocation}" "community rules" OR "community corporation" pdf
-3. "${fullLocation}" "community title" by-laws filetype:pdf
-4. "${fullLocation}" "strata corporation" rules pdf
-5. "${fullLocation}" strata community title bylaws site:.com.au pdf
+1. "${loc}" "owners corporation rules" filetype:pdf
+2. "${loc}" "OC rules" owners corporation pdf
+3. site:aro-au-prod-storage.s3-ap-southeast-2.amazonaws.com "${postcode ?? city}" by-laws
+4. "${loc}" "body corporate rules" OR "strata by-laws" pdf
+5. Building websites for ${loc} that publish owners corporation rules
 
 Return ONLY a plain list of direct .pdf URLs, one per line, no explanations, no numbering, nothing else.`;
   }
 
-  return `Search the web and find all publicly accessible strata by-law PDF documents for ${fullLocation} Australia.
+  if (state === "QLD") {
+    return `Search the web and find all publicly accessible body corporate by-law PDF documents for ${loc} Queensland, Australia.
 
 Search using all of these approaches:
-1. "${fullLocation}" "strata by-laws" filetype:pdf
-2. "${fullLocation}" "consolidated by-laws" strata plan pdf
+1. "${loc}" "body corporate by-laws" filetype:pdf
+2. "${loc}" "community management statement" pdf
+3. "${loc}" "body corporate" by-laws filetype:pdf
+4. "${loc}" "community titles scheme" by-laws pdf
+5. Building websites for ${loc} that publish body corporate by-laws
+
+Return ONLY a plain list of direct .pdf URLs, one per line, no explanations, no numbering, nothing else.`;
+  }
+
+  if (state === "WA") {
+    return `Search the web and find all publicly accessible strata by-law PDF documents for ${loc} Western Australia.
+
+Search using all of these approaches:
+1. "${loc}" "strata by-laws" filetype:pdf
+2. "${loc}" "scheme by-laws" strata company pdf
+3. "${loc}" "strata company" by-laws filetype:pdf
+4. "${loc}" "community title scheme" by-laws pdf
+5. Building websites for ${loc} that publish strata by-laws
+
+Return ONLY a plain list of direct .pdf URLs, one per line, no explanations, no numbering, nothing else.`;
+  }
+
+  if (state === "SA") {
+    return `Search the web and find all publicly accessible strata and community title by-law PDF documents for ${loc} South Australia.
+
+Search using all of these approaches:
+1. "${loc}" "strata by-laws" filetype:pdf
+2. "${loc}" "community rules" OR "community corporation" pdf
+3. "${loc}" "community title" by-laws filetype:pdf
+4. "${loc}" "strata corporation" rules pdf
+5. "${loc}" strata community title bylaws site:.com.au pdf
+
+Return ONLY a plain list of direct .pdf URLs, one per line, no explanations, no numbering, nothing else.`;
+  }
+
+  if (state === "ACT") {
+    return `Search the web and find all publicly accessible owners corporation rules PDF documents for ${loc} ACT, Australia.
+
+Search using all of these approaches:
+1. "${loc}" "owners corporation rules" filetype:pdf
+2. "${loc}" "unit plan" owners corporation rules pdf
+3. "${loc}" "unit title" rules OR by-laws filetype:pdf
+4. "${loc}" "body corporate rules" pdf
+5. Building websites for ${loc} that publish owners corporation rules
+
+Return ONLY a plain list of direct .pdf URLs, one per line, no explanations, no numbering, nothing else.`;
+  }
+
+  if (state === "TAS") {
+    return `Search the web and find all publicly accessible strata by-law PDF documents for ${loc} Tasmania, Australia.
+
+Search using all of these approaches:
+1. "${loc}" "strata by-laws" filetype:pdf
+2. "${loc}" "body corporate" by-laws OR rules pdf
+3. "${loc}" "strata plan" by-laws filetype:pdf
+4. "${loc}" "strata corporation" rules pdf
+5. Building websites for ${loc} that publish strata by-laws
+
+Return ONLY a plain list of direct .pdf URLs, one per line, no explanations, no numbering, nothing else.`;
+  }
+
+  if (state === "NT") {
+    return `Search the web and find all publicly accessible unit title and strata by-law PDF documents for ${loc} Northern Territory, Australia.
+
+Search using all of these approaches:
+1. "${loc}" "unit title" by-laws OR rules filetype:pdf
+2. "${loc}" "body corporate" by-laws pdf
+3. "${loc}" "unit plan" rules filetype:pdf
+4. "${loc}" "unit title scheme" by-laws pdf
+5. Building websites for ${loc} that publish unit title by-laws or rules
+
+Return ONLY a plain list of direct .pdf URLs, one per line, no explanations, no numbering, nothing else.`;
+  }
+
+  // NSW (default) — most AU prompts historically calibrated to NSW
+  return `Search the web and find all publicly accessible strata by-law PDF documents for ${loc} Australia.
+
+Search using all of these approaches:
+1. "${loc}" "strata by-laws" filetype:pdf
+2. "${loc}" "consolidated by-laws" strata plan pdf
 3. site:aro-au-prod-storage.s3-ap-southeast-2.amazonaws.com "${postcode ?? city}" by-laws
-4. "${fullLocation}" "registered by-laws" strata pdf
-5. Building-specific websites for ${fullLocation} that publish by-laws
+4. "${loc}" "registered by-laws" strata pdf
+5. Building-specific websites for ${loc} that publish by-laws
 
 Return ONLY a plain list of direct .pdf URLs, one per line, no explanations, no numbering, nothing else.`;
 }
 
 function buildUsPrompt(city: string, zip: string | null): string {
-  const fullLocation = zip ? `${city} ${zip}` : `${city}, Seattle, WA`;
-  return `Search the web and find all publicly accessible HOA bylaws, CC&Rs, and condominium declaration PDF documents for ${fullLocation}, Washington State, USA.
+  // Extract US state code from city name e.g. "Beverly Hills CA" → "CA"
+  const stateMatch = city.match(/\s+([A-Z]{2})$/);
+  const stateCode = stateMatch ? stateMatch[1] : null;
+  const stateName = stateCode ? (US_STATE_NAMES[stateCode] ?? stateCode) : "Washington";
+  const cleanCity = stateCode ? city.replace(/\s+[A-Z]{2}$/, "").trim() : city;
+  const fullLocation = zip ? `${cleanCity} ${zip}` : `${cleanCity}, ${stateName}`;
+
+  return `Search the web and find all publicly accessible HOA bylaws, CC&Rs, and condominium declaration PDF documents for ${fullLocation}, USA.
 
 Search using all of these approaches:
 1. "${fullLocation}" "HOA bylaws" filetype:pdf
@@ -77,9 +177,9 @@ Search using all of these approaches:
 Return ONLY a plain list of direct .pdf URLs, one per line, no explanations, no numbering, nothing else.`;
 }
 
-export async function searchSuburbForPdfs(suburb: string): Promise<SearchResult[]> {
+export async function searchSuburbForPdfs(suburb: string, regionOverride?: "au" | "us"): Promise<SearchResult[]> {
   const { city, postcode, state } = getSearchTerms(suburb);
-  const region = getRegion(suburb);
+  const region = regionOverride ?? getRegion(suburb);
 
   if (!process.env.OPENAI_API_KEY) {
     console.warn("[search] OPENAI_API_KEY not set");

@@ -282,8 +282,10 @@ export function SuburbList({ locations: initialLocations, crawledMap, docsBySubu
 
   const stateOptions = importCountry === "au" ? AU_STATE_OPTIONS : US_STATE_OPTIONS;
 
-  async function handleBulkCrawl() {
-    const pending = tabLocations.filter((l) => l.enabled && !crawledMap[l.name]);
+  async function handleBulkCrawl(recrawlAll = false) {
+    const pending = recrawlAll
+      ? tabLocations.filter((l) => l.enabled)
+      : tabLocations.filter((l) => l.enabled && !crawledMap[l.name]);
     if (pending.length === 0) return;
     stopBulkRef.current = false;
     setBulkCrawling(true);
@@ -396,16 +398,30 @@ export function SuburbList({ locations: initialLocations, crawledMap, docsBySubu
                   Done — {bulkProgress.docsFound} doc{bulkProgress.docsFound !== 1 ? "s" : ""} found
                   {bulkProgress.errors > 0 && `, ${bulkProgress.errors} error${bulkProgress.errors !== 1 ? "s" : ""}`}
                 </span>
-              ) : pendingCount > 0 ? (
-                <button
-                  onClick={handleBulkCrawl}
-                  className="text-xs px-3 py-1.5 rounded bg-indigo-700 hover:bg-indigo-600 text-white border border-indigo-600 transition-colors flex items-center gap-1.5">
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  Crawl all pending ({pendingCount})
-                </button>
-              ) : null}
+              ) : (
+                <div className="flex items-center gap-2">
+                  {pendingCount > 0 && (
+                    <button
+                      onClick={() => handleBulkCrawl(false)}
+                      className="text-xs px-3 py-1.5 rounded bg-indigo-700 hover:bg-indigo-600 text-white border border-indigo-600 transition-colors flex items-center gap-1.5">
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                      Crawl pending ({pendingCount})
+                    </button>
+                  )}
+                  {tabLocations.filter((l) => l.enabled).length > 0 && (
+                    <button
+                      onClick={() => handleBulkCrawl(true)}
+                      className="text-xs px-3 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white border border-slate-600 transition-colors flex items-center gap-1.5">
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      Recrawl all ({tabLocations.filter((l) => l.enabled).length})
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 

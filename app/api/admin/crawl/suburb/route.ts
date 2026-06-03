@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = createServiceClient();
-    const results = await searchSuburbForPdfs(suburb);
+    const results = await searchSuburbForPdfs(suburb, region);
 
     let docsFound = 0;
     const errors: string[] = [];
