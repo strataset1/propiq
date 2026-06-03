@@ -3,6 +3,8 @@ import Link from "next/link";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getStripe } from "@/lib/stripe/client";
 import { findDocumentById } from "@/lib/db/documents";
+import { detectState, STATE_LAWS } from "@/lib/state-laws";
+import StateLawSection from "@/components/state-law-section";
 
 const LIABILITY_LABELS: Record<string, { label: string; icon: string }> = {
   combustible_cladding:       { label: "Combustible cladding",      icon: "🔥" },
@@ -49,6 +51,7 @@ export default async function DownloadPage({
   let address: string | null = null;
   let bylaws: Record<string, string | number | null> | null = null;
   let liab: Record<string, string | number | null> | null = null;
+  let detectedState: string | null = null;
 
   try {
     const session = await getStripe().checkout.sessions.retrieve(sessionId);
@@ -94,6 +97,7 @@ export default async function DownloadPage({
           ]);
 
           address = propResult.data?.address_raw ?? null;
+          detectedState = address ? detectState(address) : null;
           bylaws = (bylawsResult.data ?? null) as Record<string, string | number | null> | null;
           liab = (liabResult.data ?? null) as Record<string, string | number | null> | null;
         }
@@ -184,6 +188,11 @@ export default async function DownloadPage({
               })}
             </div>
           </div>
+        )}
+
+        {/* State Law Summary */}
+        {detectedState && STATE_LAWS[detectedState] && (
+          <StateLawSection stateLaws={STATE_LAWS[detectedState]!} stateName={detectedState} />
         )}
 
         {/* Liability & risk */}

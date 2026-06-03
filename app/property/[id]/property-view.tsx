@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import StateLawSection from "@/components/state-law-section";
+import type { AttributeStateLaws } from "@/lib/state-laws";
 
 const LIABILITY_LABELS: Record<string, { label: string; icon: string }> = {
   combustible_cladding:      { label: "Combustible cladding",      icon: "🔥" },
@@ -61,11 +63,14 @@ interface Props {
   bylawData?: BylawData;
   liabilityData?: LiabilityData;
   downloadUrl?: string | null;
+  stateLaws?: AttributeStateLaws | null;
+  stateName?: string;
 }
 
 export default function PropertyView({
   address, hasBylaws, hasLiability, docs,
   isPurchased = false, bylawData, liabilityData, downloadUrl,
+  stateLaws, stateName,
 }: Props) {
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
 
@@ -186,6 +191,11 @@ export default function PropertyView({
             })}
           </div>
         </div>
+      )}
+
+      {/* State Law Summary — always visible, public info */}
+      {stateLaws && stateName && (
+        <StateLawSection stateLaws={stateLaws} stateName={stateName} />
       )}
 
       {/* Liability & risk summary */}

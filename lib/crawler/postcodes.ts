@@ -1,6 +1,6 @@
 // Maps suburb display names to Australian postcodes for better search accuracy.
 // Strata docs use postcodes, not suburb names like "Sydney CBD NSW".
-const POSTCODE_MAP: Record<string, string> = {
+export const POSTCODE_MAP: Record<string, string> = {
   "Sydney CBD NSW": "2000", "Haymarket NSW": "2000", "Pyrmont NSW": "2009",
   "Ultimo NSW": "2007", "Glebe NSW": "2037", "Surry Hills NSW": "2010",
   "Darlinghurst NSW": "2010", "Potts Point NSW": "2011", "Elizabeth Bay NSW": "2011",

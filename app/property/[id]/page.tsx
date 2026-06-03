@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
+import { detectState, STATE_LAWS } from "@/lib/state-laws";
 import PropertyView from "./property-view";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
@@ -27,6 +28,9 @@ export default async function PropertyPage({ params }: { params: Promise<{ id: s
   ]);
 
   if (!property) notFound();
+
+  const detectedState = detectState(property.address_raw ?? "");
+  const stateLaws = detectedState ? (STATE_LAWS[detectedState] ?? null) : null;
 
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col">
@@ -55,6 +59,8 @@ export default async function PropertyPage({ params }: { params: Promise<{ id: s
           hasBylaws={!!bylaws}
           hasLiability={!!liab}
           docs={docs ?? []}
+          stateLaws={stateLaws}
+          stateName={detectedState ?? undefined}
         />
       </div>
     </div>

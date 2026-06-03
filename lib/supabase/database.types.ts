@@ -578,6 +578,39 @@ export type Database = {
           },
         ]
       }
+      crawl_locations: {
+        Row: {
+          id: string
+          name: string
+          display_name: string
+          state: string
+          region: string
+          postcode: string | null
+          enabled: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          display_name: string
+          state: string
+          region: string
+          postcode?: string | null
+          enabled?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          display_name?: string
+          state?: string
+          region?: string
+          postcode?: string | null
+          enabled?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
       suburb_crawls: {
         Row: {
           docs_found: number
