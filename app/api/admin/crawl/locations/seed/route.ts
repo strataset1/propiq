@@ -19,6 +19,14 @@ import {
   MA_SUBURBS, MD_SUBURBS, MI_SUBURBS, OH_SUBURBS,
   MN_SUBURBS, PA_SUBURBS, TN_SUBURBS,
 } from "@/lib/crawler/suburbs-us-other";
+import {
+  AL_SUBURBS, AK_SUBURBS, AR_SUBURBS, CT_SUBURBS, DE_SUBURBS,
+  HI_SUBURBS, ID_SUBURBS, IN_SUBURBS, IA_SUBURBS, KS_SUBURBS,
+  KY_SUBURBS, LA_SUBURBS, ME_SUBURBS, MS_SUBURBS, MO_SUBURBS,
+  MT_SUBURBS, NE_SUBURBS, NH_SUBURBS, NJ_SUBURBS, NM_SUBURBS,
+  ND_SUBURBS, OK_SUBURBS, RI_SUBURBS, SC_SUBURBS, SD_SUBURBS,
+  UT_SUBURBS, VT_SUBURBS, WV_SUBURBS, WI_SUBURBS, WY_SUBURBS,
+} from "@/lib/crawler/suburbs-us-remaining";
 import { POSTCODE_MAP } from "@/lib/crawler/postcodes";
 
 function isAuthed(req: NextRequest) {
@@ -83,6 +91,36 @@ export const US_STATE_LISTS: Record<string, { suburbs: string[]; stateCode: stri
   MN: { suburbs: MN_SUBURBS,  stateCode: "MN" },
   PA: { suburbs: PA_SUBURBS,  stateCode: "PA" },
   TN: { suburbs: TN_SUBURBS,  stateCode: "TN" },
+  AL: { suburbs: AL_SUBURBS,  stateCode: "AL" },
+  AK: { suburbs: AK_SUBURBS,  stateCode: "AK" },
+  AR: { suburbs: AR_SUBURBS,  stateCode: "AR" },
+  CT: { suburbs: CT_SUBURBS,  stateCode: "CT" },
+  DE: { suburbs: DE_SUBURBS,  stateCode: "DE" },
+  HI: { suburbs: HI_SUBURBS,  stateCode: "HI" },
+  ID: { suburbs: ID_SUBURBS,  stateCode: "ID" },
+  IN: { suburbs: IN_SUBURBS,  stateCode: "IN" },
+  IA: { suburbs: IA_SUBURBS,  stateCode: "IA" },
+  KS: { suburbs: KS_SUBURBS,  stateCode: "KS" },
+  KY: { suburbs: KY_SUBURBS,  stateCode: "KY" },
+  LA: { suburbs: LA_SUBURBS,  stateCode: "LA" },
+  ME: { suburbs: ME_SUBURBS,  stateCode: "ME" },
+  MS: { suburbs: MS_SUBURBS,  stateCode: "MS" },
+  MO: { suburbs: MO_SUBURBS,  stateCode: "MO" },
+  MT: { suburbs: MT_SUBURBS,  stateCode: "MT" },
+  NE: { suburbs: NE_SUBURBS,  stateCode: "NE" },
+  NH: { suburbs: NH_SUBURBS,  stateCode: "NH" },
+  NJ: { suburbs: NJ_SUBURBS,  stateCode: "NJ" },
+  NM: { suburbs: NM_SUBURBS,  stateCode: "NM" },
+  ND: { suburbs: ND_SUBURBS,  stateCode: "ND" },
+  OK: { suburbs: OK_SUBURBS,  stateCode: "OK" },
+  RI: { suburbs: RI_SUBURBS,  stateCode: "RI" },
+  SC: { suburbs: SC_SUBURBS,  stateCode: "SC" },
+  SD: { suburbs: SD_SUBURBS,  stateCode: "SD" },
+  UT: { suburbs: UT_SUBURBS,  stateCode: "UT" },
+  VT: { suburbs: VT_SUBURBS,  stateCode: "VT" },
+  WV: { suburbs: WV_SUBURBS,  stateCode: "WV" },
+  WI: { suburbs: WI_SUBURBS,  stateCode: "WI" },
+  WY: { suburbs: WY_SUBURBS,  stateCode: "WY" },
 };
 
 export async function POST(req: NextRequest) {
