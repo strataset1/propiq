@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getCrawlLocations } from "@/lib/crawler/suburbs-db";
 import { searchSuburbForPdfs } from "@/lib/crawler/search";
-import { ingestPdfFromUrl } from "@/lib/crawler/ingest";
+import { ingestPdfLight } from "@/lib/crawler/ingest-light";
 
 export const maxDuration = 300;
 
@@ -30,11 +30,12 @@ export async function GET(req: NextRequest) {
   let totalDocs = 0;
 
   for (const loc of toProcess) {
-    const results = await searchSuburbForPdfs(loc.name);
+    const region = loc.region;
+    const results = await searchSuburbForPdfs(loc.name, region);
     let docsFound = 0;
 
     for (const result of results) {
-      const outcome = await ingestPdfFromUrl(result.url, loc.name, supabase);
+      const outcome = await ingestPdfLight(result.url, loc.name, supabase, region);
       if (outcome.ok) docsFound++;
     }
 

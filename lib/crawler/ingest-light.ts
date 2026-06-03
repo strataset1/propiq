@@ -33,8 +33,20 @@ export type IngestResult =
 export async function ingestPdfLight(
   url: string,
   suburb: string,
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
+  regionOverride?: "au" | "us"
 ): Promise<IngestResult> {
+  const region = regionOverride ?? getRegion(suburb);
+
+  // Pre-check source_url to avoid re-downloading PDFs we've already ingested.
+  // A URL pointing to a changed file will still be caught by file_hash below.
+  const { data: existingByUrl } = await supabase
+    .from("documents")
+    .select("id")
+    .eq("source_url", url)
+    .maybeSingle();
+  if (existingByUrl) return { ok: false, reason: "Duplicate" };
+
   let buffer: Buffer;
   try {
     const controller = new AbortController();
@@ -51,17 +63,17 @@ export async function ingestPdfLight(
     return { ok: false, reason: "Download failed or timed out" };
   }
 
-  const region = getRegion(suburb);
+  // File-level dedup — catches same content at a different URL
   const fileHash = sha256(buffer.toString("base64"));
-  const { data: existing } = await supabase
+  const { data: existingByHash } = await supabase
     .from("documents")
     .select("id")
     .eq("file_hash", fileHash)
-    .single();
-  if (existing) return { ok: false, reason: "Duplicate" };
+    .maybeSingle();
+  if (existingByHash) return { ok: false, reason: "Duplicate" };
 
   const addressRaw = extractAddressFromUrl(url, region) ?? suburb;
-  const addressNormalised = await normaliseAddress(addressRaw);
+  const addressNormalised = await normaliseAddress(addressRaw, region);
 
   const { data: property, error: propError } = await supabase
     .from("properties")
@@ -98,7 +110,6 @@ export async function ingestPdfLight(
       file_hash: fileHash,
       crawl_suburb: suburb,
       ingested_via: "crawler",
-      region,
     })
     .select()
     .single();

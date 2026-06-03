@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     const errors: string[] = [];
 
     for (const result of results) {
-      const outcome = await ingestPdfLight(result.url, suburb, supabase);
+      const outcome = await ingestPdfLight(result.url, suburb, supabase, region);
       if (outcome.ok) {
         docsFound++;
       } else if (outcome.reason !== "Duplicate") {

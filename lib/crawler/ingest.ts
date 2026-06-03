@@ -9,109 +9,38 @@ const ADDRESS_REGEX = new RegExp(
   "i"
 );
 
-function extractAddressFromUrl(url: string): string | null {
-  const filename = decodeURIComponent(url.split("/").pop() ?? "")
-    .replace(/\.pdf$/i, "")
-    .replace(/[_-]/g, " ")
-    .replace(/SP\s*\d+/gi, "")
-    .replace(/strata\s*plan\s*\d+/gi, "")
-    .replace(/by\s*laws?/gi, "")
-    .replace(/\s+/g, " ")
-    .trim();
+function extractAddressFromUrl(url: string, region: "au" | "us"): string | null {
+  const clean = region === "au"
+    ? (s: string) => s.replace(/SP\s*\d+/gi, "").replace(/strata\s*plan\s*\d+/gi, "").replace(/by\s*laws?/gi, "")
+    : (s: string) => s.replace(/cc&?rs?/gi, "").replace(/bylaws?/gi, "").replace(/declaration/gi, "").replace(/hoa/gi, "");
 
-  const match = filename.match(ADDRESS_REGEX);
-  return match ? match[0] : null;
+  const filename = clean(
+    decodeURIComponent(url.split("/").pop() ?? "")
+      .replace(/\.pdf$/i, "")
+      .replace(/[_-]/g, " ")
+  ).replace(/\s+/g, " ").trim();
+
+  return filename.match(ADDRESS_REGEX)?.[0] ?? null;
 }
 
 function extractAddressFromText(text: string): string | null {
-  const sample = text.slice(0, 2000);
-  const match = sample.match(ADDRESS_REGEX);
-  return match ? match[0] : null;
+  return text.slice(0, 2000).match(ADDRESS_REGEX)?.[0] ?? null;
 }
 
 export type IngestResult =
   | { ok: true; documentId: string; address: string }
   | { ok: false; reason: string };
 
-// Lightweight version for web-triggered crawls — skips pdf-parse (causes DOMMatrix on Vercel).
-// Documents are queued for Claude vision processing instead.
-export async function ingestPdfLight(
-  url: string,
-  suburb: string,
-  supabase: SupabaseClient
-): Promise<IngestResult> {
-  let buffer: Buffer;
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
-    const res = await fetch(url, { signal: controller.signal });
-    clearTimeout(timeout);
-    if (!res.ok) return { ok: false, reason: `HTTP ${res.status}` };
-    const contentType = res.headers.get("content-type") ?? "";
-    if (!contentType.includes("pdf") && !url.toLowerCase().endsWith(".pdf")) {
-      return { ok: false, reason: "Not a PDF" };
-    }
-    buffer = Buffer.from(await res.arrayBuffer());
-  } catch {
-    return { ok: false, reason: "Download failed or timed out" };
-  }
-
-  const fileHash = sha256(buffer.toString("base64"));
-  const { data: existing } = await supabase
-    .from("documents")
-    .select("id")
-    .eq("file_hash", fileHash)
-    .single();
-  if (existing) return { ok: false, reason: "Duplicate" };
-
-  const addressRaw = extractAddressFromUrl(url) ?? suburb;
-  const addressNormalised = await normaliseAddress(addressRaw);
-
-  const { data: property, error: propError } = await supabase
-    .from("properties")
-    .upsert(
-      { address_raw: addressRaw, address_normalised: addressNormalised, status: "processing" },
-      { onConflict: "address_normalised" }
-    )
-    .select()
-    .single();
-
-  if (propError || !property) return { ok: false, reason: "Failed to upsert property" };
-
-  const filename = url.split("/").pop() ?? `${Date.now()}.pdf`;
-  const storagePath = `${property.id}/${Date.now()}-${filename}`;
-  const { error: uploadError } = await supabase.storage
-    .from("property-documents")
-    .upload(storagePath, buffer, { contentType: "application/pdf" });
-
-  if (uploadError) return { ok: false, reason: "Storage upload failed" };
-
-  const { data: doc, error: docError } = await supabase
-    .from("documents")
-    .insert({
-      property_id: property.id,
-      type: "strata",
-      label: `Strata By-Laws — ${suburb}`,
-      source_url: url,
-      storage_path: storagePath,
-      file_hash: fileHash,
-      crawl_suburb: suburb,
-      ingested_via: "crawler",
-    })
-    .select()
-    .single();
-
-  if (docError || !doc) return { ok: false, reason: "Failed to insert document" };
-
-  return { ok: true, documentId: doc.id, address: addressRaw };
-}
-
+// Full ingest with text extraction — used when you want extracted_text stored immediately.
+// Scanned PDFs (text.length < 200) are still queued as storage-only docs for Claude vision.
 export async function ingestPdfFromUrl(
   url: string,
   suburb: string,
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
+  regionOverride?: "au" | "us"
 ): Promise<IngestResult> {
-  // Download PDF with timeout
+  const region = regionOverride ?? "au";
+
   let buffer: Buffer;
   try {
     const controller = new AbortController();
@@ -128,16 +57,15 @@ export async function ingestPdfFromUrl(
     return { ok: false, reason: "Download failed or timed out" };
   }
 
-  // Dedup by file hash
   const fileHash = sha256(buffer.toString("base64"));
   const { data: existing } = await supabase
     .from("documents")
     .select("id")
     .eq("file_hash", fileHash)
-    .single();
+    .maybeSingle();
   if (existing) return { ok: false, reason: "Duplicate" };
 
-  // Extract text
+  // Extract text — scanned PDFs won't have it but we still ingest them for Claude vision
   let text = "";
   let pageCount = 1;
   try {
@@ -145,21 +73,16 @@ export async function ingestPdfFromUrl(
     text = extracted.text;
     pageCount = extracted.pageCount;
   } catch {
-    return { ok: false, reason: "Text extraction failed" };
+    // Continue without text — Claude vision will handle it
   }
 
-  // Must have meaningful content
-  if (text.length < 200) return { ok: false, reason: "Too little text (likely scanned)" };
-
-  // Extract address
   const addressRaw =
-    extractAddressFromUrl(url) ??
-    extractAddressFromText(text) ??
-    suburb; // fall back to suburb name
+    extractAddressFromUrl(url, region) ??
+    (text ? extractAddressFromText(text) : null) ??
+    suburb;
 
-  const addressNormalised = await normaliseAddress(addressRaw);
+  const addressNormalised = await normaliseAddress(addressRaw, region);
 
-  // Upsert property
   const { data: property, error: propError } = await supabase
     .from("properties")
     .upsert(
@@ -171,7 +94,6 @@ export async function ingestPdfFromUrl(
 
   if (propError || !property) return { ok: false, reason: "Failed to upsert property" };
 
-  // Upload to storage
   const filename = url.split("/").pop() ?? `${Date.now()}.pdf`;
   const storagePath = `${property.id}/${Date.now()}-${filename}`;
   const { error: uploadError } = await supabase.storage
@@ -180,18 +102,23 @@ export async function ingestPdfFromUrl(
 
   if (uploadError) return { ok: false, reason: "Storage upload failed" };
 
-  // Insert document record
+  const docType = region === "us" ? "hoa" : "strata";
+  const defaultLabel = region === "us"
+    ? `HOA/Condo Bylaws — ${suburb}`
+    : `Strata By-Laws — ${suburb}`;
+
   const { data: doc, error: docError } = await supabase
     .from("documents")
     .insert({
       property_id: property.id,
-      type: "strata",
-      label: `Strata By-Laws — ${suburb}`,
+      type: docType,
+      label: addressRaw !== suburb ? addressRaw : defaultLabel,
       source_url: url,
       storage_path: storagePath,
       file_hash: fileHash,
-      page_count: pageCount,
-      extracted_text: text,
+      page_count: pageCount || null,
+      extracted_text: text || null,
+      crawl_suburb: suburb,
       ingested_via: "crawler",
     })
     .select()
