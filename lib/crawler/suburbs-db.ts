@@ -10,14 +10,30 @@ export type CrawlLocation = {
   enabled: boolean;
 };
 
+async function fetchAllLocations(supabase: SupabaseClient): Promise<CrawlLocation[]> {
+  const PAGE = 1000;
+  const all: CrawlLocation[] = [];
+  let from = 0;
+  while (true) {
+    const { data } = await supabase
+      .from("crawl_locations")
+      .select("id, name, display_name, state, region, postcode, enabled")
+      .order("id")
+      .range(from, from + PAGE - 1);
+    if (!data || data.length === 0) break;
+    all.push(...(data as CrawlLocation[]));
+    if (data.length < PAGE) break;
+    from += PAGE;
+  }
+  return all;
+}
+
 export async function getCrawlLocations(supabase: SupabaseClient): Promise<CrawlLocation[]> {
-  const { data } = await (supabase.rpc as any)("get_all_crawl_locations");
-  return ((data ?? []) as CrawlLocation[]).filter((l) => l.enabled);
+  return (await fetchAllLocations(supabase)).filter((l) => l.enabled);
 }
 
 export async function getAllCrawlLocations(supabase: SupabaseClient): Promise<CrawlLocation[]> {
-  const { data } = await (supabase.rpc as any)("get_all_crawl_locations");
-  return (data ?? []) as CrawlLocation[];
+  return fetchAllLocations(supabase);
 }
 
 export async function addCrawlLocation(

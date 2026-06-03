@@ -4,32 +4,57 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { getAllCrawlLocations } from "@/lib/crawler/suburbs-db";
 import { SuburbList } from "./suburb-list";
 
+type CrawledRow = { suburb: string; docs_found: number; searched_at: string };
+type DocRow = { id: string; label: string; source_url: string | null; processed_at: string | null; crawl_suburb: string | null };
+
+async function fetchAllCrawled(supabase: ReturnType<typeof createServiceClient>): Promise<CrawledRow[]> {
+  const PAGE = 1000;
+  const all: CrawledRow[] = [];
+  let from = 0;
+  while (true) {
+    const { data } = await supabase.from("suburb_crawls").select("suburb, docs_found, searched_at").order("searched_at", { ascending: false }).range(from, from + PAGE - 1);
+    if (!data || data.length === 0) break;
+    all.push(...(data as CrawledRow[]));
+    if (data.length < PAGE) break;
+    from += PAGE;
+  }
+  return all;
+}
+
+async function fetchAllCrawlerDocs(supabase: ReturnType<typeof createServiceClient>): Promise<DocRow[]> {
+  const PAGE = 1000;
+  const all: DocRow[] = [];
+  let from = 0;
+  while (true) {
+    const { data } = await supabase.from("documents").select("id, label, source_url, processed_at, crawl_suburb").eq("ingested_via", "crawler").not("crawl_suburb", "is", null).order("created_at", { ascending: false }).range(from, from + PAGE - 1);
+    if (!data || data.length === 0) break;
+    all.push(...(data as DocRow[]));
+    if (data.length < PAGE) break;
+    from += PAGE;
+  }
+  return all;
+}
+
 export default async function CrawlPage() {
   const supabase = createServiceClient();
 
-  const [locations, crawled, crawlerDocs] = await Promise.all([
+  const [locations, crawledRows, crawlerDocs] = await Promise.all([
     getAllCrawlLocations(supabase),
-    supabase.from("suburb_crawls").select("suburb, docs_found, searched_at").order("searched_at", { ascending: false }),
-    supabase.from("documents")
-      .select("id, label, source_url, processed_at, crawl_suburb")
-      .eq("ingested_via", "crawler")
-      .not("crawl_suburb", "is", null)
-      .order("created_at", { ascending: false }),
+    fetchAllCrawled(supabase),
+    fetchAllCrawlerDocs(supabase),
   ]);
 
-  const crawledMap = Object.fromEntries(
-    (crawled.data ?? []).map((r) => [r.suburb, r])
-  );
+  const crawledMap = Object.fromEntries(crawledRows.map((r) => [r.suburb, r]));
 
-  const docsBySuburb: Record<string, typeof crawlerDocs.data> = {};
-  for (const doc of crawlerDocs.data ?? []) {
+  const docsBySuburb: Record<string, DocRow[]> = {};
+  for (const doc of crawlerDocs) {
     const s = doc.crawl_suburb!;
     if (!docsBySuburb[s]) docsBySuburb[s] = [];
     docsBySuburb[s]!.push(doc);
   }
 
   const totalCrawled = locations.filter((l) => crawledMap[l.name]).length;
-  const totalDocs = (crawled.data ?? []).reduce((sum, r) => sum + (r.docs_found ?? 0), 0);
+  const totalDocs = crawledRows.reduce((sum, r) => sum + (r.docs_found ?? 0), 0);
 
   return (
     <div className="space-y-6">
@@ -56,7 +81,7 @@ export default async function CrawlPage() {
       <SuburbList
         locations={locations}
         crawledMap={crawledMap}
-        docsBySuburb={docsBySuburb as Record<string, { id: string; label: string; source_url: string | null; processed_at: string | null; crawl_suburb: string | null }[]>}
+        docsBySuburb={docsBySuburb}
       />
     </div>
   );
