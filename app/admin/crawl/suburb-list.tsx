@@ -26,10 +26,26 @@ const AU_STATE_OPTIONS = [
 ];
 
 const US_STATE_OPTIONS = [
-  { value: "WA (Seattle)", label: "Washington State (WA)" },
-  { value: "CA", label: "California (coming soon)", disabled: true },
-  { value: "NY", label: "New York (coming soon)", disabled: true },
-  { value: "FL", label: "Florida (coming soon)", disabled: true },
+  { value: "WA (Seattle)", label: "Washington (WA)"    },
+  { value: "CA",           label: "California (CA)"    },
+  { value: "FL",           label: "Florida (FL)"       },
+  { value: "NY",           label: "New York (NY)"      },
+  { value: "TX",           label: "Texas (TX)"         },
+  { value: "AZ",           label: "Arizona (AZ)"       },
+  { value: "CO",           label: "Colorado (CO)"      },
+  { value: "IL",           label: "Illinois (IL)"      },
+  { value: "GA",           label: "Georgia (GA)"       },
+  { value: "NC",           label: "North Carolina (NC)"},
+  { value: "VA",           label: "Virginia (VA)"      },
+  { value: "OR",           label: "Oregon (OR)"        },
+  { value: "NV",           label: "Nevada (NV)"        },
+  { value: "MA",           label: "Massachusetts (MA)" },
+  { value: "MD",           label: "Maryland (MD)"      },
+  { value: "MI",           label: "Michigan (MI)"      },
+  { value: "OH",           label: "Ohio (OH)"          },
+  { value: "MN",           label: "Minnesota (MN)"     },
+  { value: "PA",           label: "Pennsylvania (PA)"  },
+  { value: "TN",           label: "Tennessee (TN)"     },
 ];
 
 function ChevronIcon({ open }: { open: boolean }) {
@@ -250,9 +266,7 @@ export function SuburbList({ locations: initialLocations, crawledMap, docsBySubu
               className="bg-slate-800 border border-slate-700 text-white text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-amber-500 transition-colors min-w-[240px]">
               <option value="">Select a state…</option>
               {stateOptions.map((opt) => (
-                <option key={opt.value} value={opt.value} disabled={"disabled" in opt && !!opt.disabled}>
-                  {opt.label}
-                </option>
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
           </div>
