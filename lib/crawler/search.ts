@@ -5,7 +5,7 @@ const AU_NOISE_DOMAINS = [
   "parliament.nsw.gov.au", "nsw.gov.au", "legislation.nsw.gov.au",
   "austlii.edu.au", "planning.nsw.gov.au", "vic.gov.au",
   "legislation.vic.gov.au", "abs.gov.au", "fairtrading.nsw.gov.au",
-  "consumer.vic.gov.au",
+  "consumer.vic.gov.au", "sa.gov.au", "landservices.com.au",
 ];
 
 const US_NOISE_DOMAINS = [
@@ -35,8 +35,22 @@ export type SearchResult = {
   source: "openai";
 };
 
-function buildAuPrompt(city: string, postcode: string | null): string {
-  const fullLocation = postcode ? `${city} ${postcode}` : city;
+function buildAuPrompt(city: string, postcode: string | null, state: string | null): string {
+  const fullLocation = postcode ? `${city} ${postcode}` : state ? `${city} ${state}` : city;
+
+  if (state === "SA") {
+    return `Search the web and find all publicly accessible strata and community title by-law PDF documents for ${fullLocation} South Australia.
+
+Search using all of these approaches:
+1. "${fullLocation}" "strata by-laws" filetype:pdf
+2. "${fullLocation}" "community rules" OR "community corporation" pdf
+3. "${fullLocation}" "community title" by-laws filetype:pdf
+4. "${fullLocation}" "strata corporation" rules pdf
+5. "${fullLocation}" strata community title bylaws site:.com.au pdf
+
+Return ONLY a plain list of direct .pdf URLs, one per line, no explanations, no numbering, nothing else.`;
+  }
+
   return `Search the web and find all publicly accessible strata by-law PDF documents for ${fullLocation} Australia.
 
 Search using all of these approaches:
@@ -64,7 +78,7 @@ Return ONLY a plain list of direct .pdf URLs, one per line, no explanations, no 
 }
 
 export async function searchSuburbForPdfs(suburb: string): Promise<SearchResult[]> {
-  const { city, postcode } = getSearchTerms(suburb);
+  const { city, postcode, state } = getSearchTerms(suburb);
   const region = getRegion(suburb);
 
   if (!process.env.OPENAI_API_KEY) {
@@ -75,7 +89,7 @@ export async function searchSuburbForPdfs(suburb: string): Promise<SearchResult[
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   const prompt = region === "us"
     ? buildUsPrompt(city, postcode)
-    : buildAuPrompt(city, postcode);
+    : buildAuPrompt(city, postcode, state);
 
   const seen = new Set<string>();
   const results: SearchResult[] = [];

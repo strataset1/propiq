@@ -51,6 +51,38 @@ export const POSTCODE_MAP: Record<string, string> = {
   "Tamworth NSW": "2340", "Armidale NSW": "2350", "Orange NSW": "2800",
   "Bathurst NSW": "2795", "Dubbo NSW": "2830", "Wagga Wagga NSW": "2650",
   "Albury NSW": "2640",
+  // SA
+  "Adelaide SA": "5000", "North Adelaide SA": "5006", "Walkerville SA": "5081",
+  "Prospect SA": "5082", "Fitzroy SA": "5082", "Medindie SA": "5081",
+  "Gilberton SA": "5081", "Collinswood SA": "5081", "Norwood SA": "5067",
+  "Kensington SA": "5068", "Marryatville SA": "5068", "Dulwich SA": "5065",
+  "Toorak Gardens SA": "5065", "Glenside SA": "5065", "Burnside SA": "5066",
+  "Hawthorn SA": "5062", "Unley SA": "5061", "Malvern SA": "5061",
+  "Hyde Park SA": "5061", "Parkside SA": "5063", "Wayville SA": "5034",
+  "Goodwood SA": "5034", "Millswood SA": "5034", "Clarence Park SA": "5034",
+  "Colonel Light Gardens SA": "5041", "Mitcham SA": "5062", "Blackwood SA": "5051",
+  "Rose Park SA": "5067", "Auldana SA": "5072", "Magill SA": "5072",
+  "Campbelltown SA": "5074", "Newton SA": "5074", "Tranmere SA": "5073",
+  "Hectorville SA": "5073", "Payneham SA": "5070", "Marden SA": "5070",
+  "Glynde SA": "5070", "Firle SA": "5070", "Henley Beach SA": "5022",
+  "Grange SA": "5022", "Semaphore SA": "5019", "Port Adelaide SA": "5015",
+  "Woodville SA": "5011", "Royal Park SA": "5014", "Seaton SA": "5023",
+  "Findon SA": "5023", "Flinders Park SA": "5025", "Pennington SA": "5013",
+  "Ethelton SA": "5016", "Alberton SA": "5014", "Glenelg SA": "5045",
+  "Brighton SA": "5048", "Hove SA": "5048", "Somerton Park SA": "5044",
+  "Glenelg North SA": "5045", "Glenelg East SA": "5045", "Novar Gardens SA": "5040",
+  "Oaklands Park SA": "5046", "Morphettville SA": "5043", "Plympton SA": "5038",
+  "Richmond SA": "5033", "Keswick SA": "5035", "Marleston SA": "5033",
+  "Marion SA": "5043", "Edwardstown SA": "5039", "Melrose Park SA": "5039",
+  "Warradale SA": "5046", "Sturt SA": "5047", "Dover Gardens SA": "5048",
+  "Elizabeth SA": "5112", "Salisbury SA": "5108", "Para Hills SA": "5096",
+  "Modbury SA": "5092", "Tea Tree Gully SA": "5091", "Highbury SA": "5089",
+  "Greenwith SA": "5125", "Mawson Lakes SA": "5095", "Pooraka SA": "5095",
+  "Brahma Lodge SA": "5109", "Gepps Cross SA": "5094", "Dry Creek SA": "5094",
+  "Mount Barker SA": "5251", "Strathalbyn SA": "5255", "Victor Harbor SA": "5211",
+  "Goolwa SA": "5214", "Aldinga Beach SA": "5173", "McLaren Vale SA": "5171",
+  "Whyalla SA": "5600", "Port Augusta SA": "5700", "Port Pirie SA": "5540",
+  "Murray Bridge SA": "5253",
   // VIC
   "Melbourne CBD VIC": "3000", "Southbank VIC": "3006", "Docklands VIC": "3008",
   "Carlton VIC": "3053", "Fitzroy VIC": "3065", "Collingwood VIC": "3066",
@@ -168,11 +200,13 @@ export function getRegion(suburb: string): "au" | "us" {
     : "au";
 }
 
-export function getSearchTerms(suburb: string): { suburb: string; postcode: string | null; city: string } {
+export function getSearchTerms(suburb: string): { suburb: string; postcode: string | null; city: string; state: string | null } {
   const postcode = getPostcode(suburb);
+  const stateMatch = suburb.match(/\s+(NSW|VIC|QLD|SA|WA|TAS|ACT|NT)$/i);
+  const state = stateMatch ? stateMatch[1].toUpperCase() : null;
   const city = suburb
-    .replace(/\s+(NSW|VIC|QLD|SA|TAS|ACT|NT)$/i, "") // AU state suffixes (skip WA — ambiguous)
-    .replace(/\s+Seattle$/, "")                         // "Capitol Hill Seattle" → "Capitol Hill"
+    .replace(/\s+(NSW|VIC|QLD|SA|TAS|ACT|NT)$/i, "")
+    .replace(/\s+Seattle$/, "")
     .trim();
-  return { suburb, postcode, city };
+  return { suburb, postcode, city, state };
 }
