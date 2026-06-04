@@ -3,7 +3,7 @@ import Link from "next/link";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getStripe } from "@/lib/stripe/client";
 import { findDocumentById } from "@/lib/db/documents";
-import { detectState, STATE_LAWS, type AttributeStateLaws } from "@/lib/state-laws";
+import { detectState, STATE_LAWS, type AttributeStateLaws, type StateLawEntry } from "@/lib/state-laws";
 import { StateLawPanel } from "@/components/state-law-section";
 
 const LIABILITY_LABELS: Record<string, { label: string; icon: string }> = {
@@ -17,11 +17,18 @@ const LIABILITY_LABELS: Record<string, { label: string; icon: string }> = {
   pets:                       { label: "Pets",                      icon: "🐾" },
 };
 
-const BY_LAW_FIELDS: { label: string; icon: string; key: string; stateLawKey: keyof AttributeStateLaws }[] = [
-  { label: "Pets",              icon: "🐾", key: "pets_allowed_value",         stateLawKey: "pets_allowed"         },
-  { label: "Short-term rental", icon: "🏠", key: "short_term_rental_value",    stateLawKey: "short_term_rental"    },
-  { label: "Interior reno",     icon: "🔨", key: "interior_renovations_value", stateLawKey: "interior_renovations" },
-  { label: "Exterior reno",     icon: "🏗️", key: "exterior_renovations_value", stateLawKey: "exterior_renovations" },
+const BY_LAW_FIELDS = [
+  { label: "Pets",              icon: "🐾", key: "pets_allowed_value"         },
+  { label: "Short-term rental", icon: "🏠", key: "short_term_rental_value"    },
+  { label: "Interior reno",     icon: "🔨", key: "interior_renovations_value" },
+  { label: "Exterior reno",     icon: "🏗️", key: "exterior_renovations_value" },
+];
+
+const STATE_LAW_ENTRIES: { label: string; icon: string; key: keyof AttributeStateLaws }[] = [
+  { label: "Pets",               icon: "🐾", key: "pets_allowed"         },
+  { label: "Short-term rental",  icon: "🏠", key: "short_term_rental"    },
+  { label: "Interior reno",      icon: "🔨", key: "interior_renovations" },
+  { label: "Exterior reno",      icon: "🏗️", key: "exterior_renovations" },
 ];
 
 const VALUE_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
@@ -171,24 +178,20 @@ export default async function DownloadPage({
               )}
             </div>
             <div className="grid grid-cols-2 gap-3">
-              {BY_LAW_FIELDS.map(({ label, icon, key, stateLawKey }) => {
+              {BY_LAW_FIELDS.map(({ label, icon, key }) => {
                 const raw = bylaws![key] as string | null;
                 const cfg = raw ? VALUE_CONFIG[raw] : null;
-                const stateLaw = stateLaws?.[stateLawKey];
                 return (
-                  <div key={key} className={`flex flex-col gap-2 px-3 py-3 rounded-lg ${cfg ? cfg.bg : "bg-slate-800/50"}`}>
-                    <div className="flex items-center gap-2.5">
-                      <span className="text-lg shrink-0">{icon}</span>
-                      <div>
-                        <p className="text-slate-400 text-xs">{label}</p>
-                        {cfg ? (
-                          <p className={`text-sm font-semibold whitespace-nowrap ${cfg.color}`}>{cfg.label}</p>
-                        ) : (
-                          <p className="text-slate-500 text-xs font-medium">Not mentioned</p>
-                        )}
-                      </div>
+                  <div key={key} className={`flex items-center gap-2.5 px-3 py-3 rounded-lg ${cfg ? cfg.bg : "bg-slate-800/50"}`}>
+                    <span className="text-lg shrink-0">{icon}</span>
+                    <div>
+                      <p className="text-slate-400 text-xs">{label}</p>
+                      {cfg ? (
+                        <p className={`text-sm font-semibold whitespace-nowrap ${cfg.color}`}>{cfg.label}</p>
+                      ) : (
+                        <p className="text-slate-500 text-xs font-medium">Not mentioned</p>
+                      )}
                     </div>
-                    {stateLaw && <StateLawPanel law={stateLaw} />}
                   </div>
                 );
               })}
@@ -238,8 +241,46 @@ export default async function DownloadPage({
                 );
               })}
             </div>
+            {detectedState && stateLaws && (() => {
+              const entries = STATE_LAW_ENTRIES.map(e => ({ ...e, law: stateLaws[e.key] as StateLawEntry | undefined })).filter(e => e.law);
+              if (entries.length === 0) return null;
+              return (
+                <div className="mt-4 space-y-2">
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{detectedState.toUpperCase()} Blanket State Laws</p>
+                  {entries.map(({ label, icon, law }) => (
+                    <div key={label} className="flex gap-2.5 items-start">
+                      <span className="text-sm mt-0.5 shrink-0">{icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-slate-500 mb-1">{label}</p>
+                        <StateLawPanel law={law!} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
         )}
+
+        {/* State laws when no liability section */}
+        {!liab && detectedState && stateLaws && (() => {
+          const entries = STATE_LAW_ENTRIES.map(e => ({ ...e, law: stateLaws[e.key] as StateLawEntry | undefined })).filter(e => e.law);
+          if (entries.length === 0) return null;
+          return (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{detectedState.toUpperCase()} Blanket State Laws</p>
+              {entries.map(({ label, icon, law }) => (
+                <div key={label} className="flex gap-2.5 items-start">
+                  <span className="text-sm mt-0.5 shrink-0">{icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-slate-500 mb-1">{label}</p>
+                    <StateLawPanel law={law!} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
