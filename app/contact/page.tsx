@@ -118,7 +118,7 @@ export default function ContactPage() {
             </div>
 
             {status === "error" && (
-              <p className="text-red-400 text-sm">Something went wrong. Please email us directly at sales@strataset.com.au</p>
+              <p className="text-red-400 text-sm">Something went wrong. Please email us directly at bylawsindex@gmail.com</p>
             )}
 
             <button

@@ -264,8 +264,8 @@ export default function LookupPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-white">Property Lookup</h1>
-        <p className="text-slate-400 text-sm mt-1">Preview what the API returns for any address</p>
+        <h1 className="text-xl font-semibold text-white">Document Preview</h1>
+        <p className="text-slate-400 text-sm mt-1">Search any address to see the full extracted output — full data, no payment required</p>
       </div>
 
       <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }} className="flex gap-3">

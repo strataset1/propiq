@@ -1,7 +1,5 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { cookies } from "next/headers";
-import { timingSafeEqual } from "crypto";
 import { createServiceClient } from "@/lib/supabase/server";
 import { detectState, STATE_LAWS } from "@/lib/state-laws";
 import PropertyView from "./property-view";
@@ -16,23 +14,12 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 export default async function PropertyPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = createServiceClient();
-  const cookieStore = await cookies();
-  const adminSecret = process.env.ADMIN_SECRET;
-  const providedToken = cookieStore.get("admin_token")?.value;
-  let isAdmin = false;
-  if (adminSecret && providedToken) {
-    try {
-      isAdmin = timingSafeEqual(Buffer.from(providedToken), Buffer.from(adminSecret));
-    } catch {
-      // timingSafeEqual throws if buffers differ in length — isAdmin stays false
-    }
-  }
 
   const [
     { data: property },
-    { data: bylawsCheck },
+    { data: bylaws },
     { data: docs },
-    { data: liabCheck },
+    { data: liab },
   ] = await Promise.all([
     supabase.from("properties").select("id, address_raw").eq("id", id).maybeSingle(),
     supabase.from("strata_bylaws").select("id").eq("property_id", id).limit(1).maybeSingle(),
@@ -44,32 +31,6 @@ export default async function PropertyPage({ params }: { params: Promise<{ id: s
 
   const detectedState = detectState(property.address_raw ?? "");
   const stateLaws = detectedState ? (STATE_LAWS[detectedState] ?? null) : null;
-
-  // Admin preview: fetch full extracted data without Stripe gate
-  let bylawData = undefined;
-  let liabilityData = undefined;
-  let downloadUrl: string | null = null;
-  if (isAdmin && bylawsCheck) {
-    const [{ data: bl }, { data: li }] = await Promise.all([
-      supabase.from("strata_bylaws")
-        .select("pets_allowed_value, short_term_rental_value, interior_renovations_value, exterior_renovations_value, confidence")
-        .eq("property_id", id).order("processed_at", { ascending: false }).limit(1).maybeSingle(),
-      supabase.from("strata_liability_extractions")
-        .select("*").eq("property_id", id).order("processed_at", { ascending: false }).limit(1).maybeSingle(),
-    ]);
-    bylawData = bl ?? undefined;
-    liabilityData = li ?? undefined;
-
-    const doc = docs?.[0];
-    if (doc) {
-      const { data: signed } = await supabase.storage.from("property-documents")
-        .createSignedUrl(
-          (await supabase.from("documents").select("storage_path").eq("id", doc.id).maybeSingle()).data?.storage_path ?? "",
-          3600
-        );
-      downloadUrl = signed?.signedUrl ?? null;
-    }
-  }
 
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col">
@@ -95,15 +56,11 @@ export default async function PropertyPage({ params }: { params: Promise<{ id: s
 
         <PropertyView
           address={property.address_raw ?? "Unknown address"}
-          hasBylaws={!!bylawsCheck}
-          hasLiability={!!liabCheck}
+          hasBylaws={!!bylaws}
+          hasLiability={!!liab}
           docs={docs ?? []}
           stateLaws={stateLaws}
           stateName={detectedState ?? undefined}
-          isPurchased={isAdmin && !!bylawsCheck}
-          bylawData={bylawData}
-          liabilityData={liabilityData}
-          downloadUrl={downloadUrl}
         />
       </div>
     </div>
