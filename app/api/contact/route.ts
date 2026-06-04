@@ -26,17 +26,24 @@ export async function POST(req: NextRequest) {
   const toEmail = process.env.CONTACT_TO_EMAIL ?? "sales@strataset.com.au";
 
   if (apiKey) {
+    const esc = (s: string) =>
+      s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+       .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    // Strip CR/LF to prevent header injection in subject/replyTo
+    const safeSubject = subject.replace(/[\r\n]/g, " ");
+    const safeReplyTo = email.replace(/[\r\n]/g, "");
+
     const resend = new Resend(apiKey);
     const { error: emailError } = await resend.emails.send({
       from: "ByLawsIndex <noreply@bylawsindex.com>",
       to: toEmail,
-      replyTo: email,
-      subject: `Contact form: ${subject}`,
+      replyTo: safeReplyTo,
+      subject: `Contact form: ${safeSubject}`,
       text: `New contact form submission from ${name} <${email}>\n\nSubject: ${subject}\n\n${message}`,
-      html: `<p><strong>From:</strong> ${name} &lt;${email}&gt;</p>
-<p><strong>Subject:</strong> ${subject}</p>
+      html: `<p><strong>From:</strong> ${esc(name)} &lt;${esc(email)}&gt;</p>
+<p><strong>Subject:</strong> ${esc(subject)}</p>
 <hr />
-<p style="white-space:pre-wrap">${message.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>`,
+<p style="white-space:pre-wrap">${esc(message)}</p>`,
     });
 
     if (emailError) {
