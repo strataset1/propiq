@@ -87,20 +87,22 @@ function StateLawPanel({ law }: { law: StateLawEntry }) {
   );
 }
 
+const ATTR_BG: Record<string, string> = {
+  yes:   "bg-emerald-500/10",
+  no:    "bg-red-500/10",
+  maybe: "bg-amber-500/10",
+};
+
 function AttributeCard({ label, attr, stateLaw }: { label: string; attr: ByLawAttribute; stateLaw?: StateLawEntry }) {
-  const colour = VALUE_COLOURS[attr.value ?? ""] ?? "text-slate-400";
+  const val = attr.value ?? null;
+  const colour = VALUE_COLOURS[val ?? ""] ?? "text-slate-400";
+  const bg = val ? (ATTR_BG[val] ?? "bg-slate-800/50") : "bg-slate-800/50";
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2">
+    <div className={`rounded-xl p-4 space-y-2 ${bg}`}>
       <div className="flex items-center justify-between">
         <p className="text-slate-300 text-sm font-medium">{label}</p>
-        <span className={`text-sm font-semibold uppercase ${colour}`}>{attr.value ?? "—"}</span>
+        <span className={`text-sm font-bold uppercase ${colour}`}>{val ?? "—"}</span>
       </div>
-      {attr.detail && <p className="text-slate-400 text-xs leading-relaxed">{attr.detail}</p>}
-      {attr.legal && (
-        <p className="text-slate-600 text-xs italic border-l-2 border-slate-700 pl-3 leading-relaxed">
-          {attr.legal}
-        </p>
-      )}
       {stateLaw && <StateLawPanel law={stateLaw} />}
     </div>
   );
