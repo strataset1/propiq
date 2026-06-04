@@ -3,8 +3,8 @@ import Link from "next/link";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getStripe } from "@/lib/stripe/client";
 import { findDocumentById } from "@/lib/db/documents";
-import { detectState, STATE_LAWS } from "@/lib/state-laws";
-import StateLawSection from "@/components/state-law-section";
+import { detectState, STATE_LAWS, type AttributeStateLaws } from "@/lib/state-laws";
+import { StateLawPanel } from "@/components/state-law-section";
 
 const LIABILITY_LABELS: Record<string, { label: string; icon: string }> = {
   combustible_cladding:       { label: "Combustible cladding",      icon: "🔥" },
@@ -17,11 +17,11 @@ const LIABILITY_LABELS: Record<string, { label: string; icon: string }> = {
   pets:                       { label: "Pets",                      icon: "🐾" },
 };
 
-const BY_LAW_FIELDS = [
-  { label: "Pets",              icon: "🐾", key: "pets_allowed_value"         },
-  { label: "Short-term rental", icon: "🏠", key: "short_term_rental_value"    },
-  { label: "Interior reno",     icon: "🔨", key: "interior_renovations_value" },
-  { label: "Exterior reno",     icon: "🏗️", key: "exterior_renovations_value" },
+const BY_LAW_FIELDS: { label: string; icon: string; key: string; stateLawKey: keyof AttributeStateLaws }[] = [
+  { label: "Pets",              icon: "🐾", key: "pets_allowed_value",         stateLawKey: "pets_allowed"         },
+  { label: "Short-term rental", icon: "🏠", key: "short_term_rental_value",    stateLawKey: "short_term_rental"    },
+  { label: "Interior reno",     icon: "🔨", key: "interior_renovations_value", stateLawKey: "interior_renovations" },
+  { label: "Exterior reno",     icon: "🏗️", key: "exterior_renovations_value", stateLawKey: "exterior_renovations" },
 ];
 
 const VALUE_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
@@ -52,6 +52,7 @@ export default async function DownloadPage({
   let bylaws: Record<string, string | number | null> | null = null;
   let liab: Record<string, string | number | null> | null = null;
   let detectedState: string | null = null;
+  let stateLaws: AttributeStateLaws | null = null;
 
   try {
     const session = await getStripe().checkout.sessions.retrieve(sessionId);
@@ -98,6 +99,7 @@ export default async function DownloadPage({
 
           address = propResult.data?.address_raw ?? null;
           detectedState = address ? detectState(address) : null;
+          stateLaws = detectedState ? (STATE_LAWS[detectedState] ?? null) : null;
           bylaws = (bylawsResult.data ?? null) as Record<string, string | number | null> | null;
           liab = (liabResult.data ?? null) as Record<string, string | number | null> | null;
         }
@@ -169,30 +171,29 @@ export default async function DownloadPage({
               )}
             </div>
             <div className="grid grid-cols-2 gap-3">
-              {BY_LAW_FIELDS.map(({ label, icon, key }) => {
+              {BY_LAW_FIELDS.map(({ label, icon, key, stateLawKey }) => {
                 const raw = bylaws![key] as string | null;
                 const cfg = raw ? VALUE_CONFIG[raw] : null;
+                const stateLaw = stateLaws?.[stateLawKey];
                 return (
-                  <div key={key} className={`flex items-center gap-2.5 px-3 py-3 rounded-lg ${cfg ? cfg.bg : "bg-slate-800/50"}`}>
-                    <span className="text-lg shrink-0">{icon}</span>
-                    <div>
-                      <p className="text-slate-400 text-xs">{label}</p>
-                      {cfg ? (
-                        <p className={`text-sm font-semibold whitespace-nowrap ${cfg.color}`}>{cfg.label}</p>
-                      ) : (
-                        <p className="text-slate-500 text-xs font-medium">Not mentioned</p>
-                      )}
+                  <div key={key} className={`flex flex-col gap-2 px-3 py-3 rounded-lg ${cfg ? cfg.bg : "bg-slate-800/50"}`}>
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-lg shrink-0">{icon}</span>
+                      <div>
+                        <p className="text-slate-400 text-xs">{label}</p>
+                        {cfg ? (
+                          <p className={`text-sm font-semibold whitespace-nowrap ${cfg.color}`}>{cfg.label}</p>
+                        ) : (
+                          <p className="text-slate-500 text-xs font-medium">Not mentioned</p>
+                        )}
+                      </div>
                     </div>
+                    {stateLaw && <StateLawPanel law={stateLaw} />}
                   </div>
                 );
               })}
             </div>
           </div>
-        )}
-
-        {/* State Law Summary */}
-        {detectedState && STATE_LAWS[detectedState] && (
-          <StateLawSection stateLaws={STATE_LAWS[detectedState]!} stateName={detectedState} />
         )}
 
         {/* Liability & risk */}

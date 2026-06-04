@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { AttributeStateLaws, StateLawEntry } from "@/lib/state-laws";
 
-function StateLawPanel({ law }: { law: StateLawEntry }) {
+export function StateLawPanel({ law }: { law: StateLawEntry }) {
   const [open, setOpen] = useState(false);
   return (
     <div className={`rounded-lg border text-xs ${law.overridesHardNo ? "border-amber-500/50 bg-amber-950/20" : "border-slate-700 bg-slate-800/40"}`}>

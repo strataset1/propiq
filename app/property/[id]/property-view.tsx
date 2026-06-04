@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import StateLawSection from "@/components/state-law-section";
+import { StateLawPanel } from "@/components/state-law-section";
 import type { AttributeStateLaws } from "@/lib/state-laws";
 
 const LIABILITY_LABELS: Record<string, { label: string; icon: string }> = {
@@ -16,11 +16,11 @@ const LIABILITY_LABELS: Record<string, { label: string; icon: string }> = {
   pets:                      { label: "Pets",                      icon: "🐾" },
 };
 
-const BY_LAW_FIELDS: { field: string; icon: string; key: string }[] = [
-  { field: "Pets",              icon: "🐾", key: "pets_allowed_value"          },
-  { field: "Short-term rental", icon: "🏠", key: "short_term_rental_value"     },
-  { field: "Interior reno",     icon: "🔨", key: "interior_renovations_value"  },
-  { field: "Exterior reno",     icon: "🏗️", key: "exterior_renovations_value"  },
+const BY_LAW_FIELDS: { field: string; icon: string; key: string; stateLawKey: keyof AttributeStateLaws }[] = [
+  { field: "Pets",              icon: "🐾", key: "pets_allowed_value",         stateLawKey: "pets_allowed"          },
+  { field: "Short-term rental", icon: "🏠", key: "short_term_rental_value",    stateLawKey: "short_term_rental"     },
+  { field: "Interior reno",     icon: "🔨", key: "interior_renovations_value", stateLawKey: "interior_renovations"  },
+  { field: "Exterior reno",     icon: "🏗️", key: "exterior_renovations_value", stateLawKey: "exterior_renovations"  },
 ];
 
 const VALUE_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
@@ -164,38 +164,37 @@ export default function PropertyView({
             )}
           </div>
           <div className="grid grid-cols-2 gap-3">
-            {BY_LAW_FIELDS.map(({ field, icon, key }) => {
+            {BY_LAW_FIELDS.map(({ field, icon, key, stateLawKey }) => {
               const rawValue = bylawData?.[key as keyof typeof bylawData] as string | null | undefined;
               const cfg = rawValue ? VALUE_CONFIG[rawValue] : null;
+              const stateLaw = stateLaws?.[stateLawKey];
               return (
                 <div
                   key={field}
-                  className={`flex items-center gap-2.5 px-3 py-3 rounded-lg ${isPurchased && cfg ? cfg.bg : "bg-slate-800/50"}`}
+                  className={`flex flex-col gap-2 px-3 py-3 rounded-lg ${isPurchased && cfg ? cfg.bg : "bg-slate-800/50"}`}
                 >
-                  <span className={`text-lg shrink-0 ${isPurchased && cfg ? "" : "opacity-40"}`}>{icon}</span>
-                  <div>
-                    <p className="text-slate-400 text-xs">{field}</p>
-                    {isPurchased && cfg ? (
-                      <p className={`text-sm font-semibold whitespace-nowrap ${cfg.color}`}>{cfg.label}</p>
-                    ) : isPurchased && !rawValue ? (
-                      <p className="text-slate-500 text-xs font-medium">Not mentioned</p>
-                    ) : (
-                      <div className="flex items-center gap-1 mt-0.5">
-                        <LockIcon />
-                        <p className="text-slate-600 text-xs font-medium">Locked</p>
-                      </div>
-                    )}
+                  <div className="flex items-center gap-2.5">
+                    <span className={`text-lg shrink-0 ${isPurchased && cfg ? "" : "opacity-40"}`}>{icon}</span>
+                    <div>
+                      <p className="text-slate-400 text-xs">{field}</p>
+                      {isPurchased && cfg ? (
+                        <p className={`text-sm font-semibold whitespace-nowrap ${cfg.color}`}>{cfg.label}</p>
+                      ) : isPurchased && !rawValue ? (
+                        <p className="text-slate-500 text-xs font-medium">Not mentioned</p>
+                      ) : (
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <LockIcon />
+                          <p className="text-slate-600 text-xs font-medium">Locked</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
+                  {stateLaw && <StateLawPanel law={stateLaw} />}
                 </div>
               );
             })}
           </div>
         </div>
-      )}
-
-      {/* State Law Summary — always visible, public info */}
-      {stateLaws && stateName && (
-        <StateLawSection stateLaws={stateLaws} stateName={stateName} />
       )}
 
       {/* Liability & risk summary */}
