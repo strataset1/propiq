@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
   }
 
   const apiKey = process.env.RESEND_API_KEY;
-  const toEmail = process.env.CONTACT_TO_EMAIL ?? "bylawsindex@gmail.com";
+  const toEmail = process.env.CONTACT_TO_EMAIL ?? "strataset1@gmail.com";
 
   if (apiKey) {
     const esc = (s: string) =>
