@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
 
     const resend = new Resend(apiKey);
     const { error: emailError } = await resend.emails.send({
-      from: "ByLawsIndex <noreply@bylawsindex.com>",
+      from: "ByLawsIndex <onboarding@resend.dev>",
       to: toEmail,
       replyTo: safeReplyTo,
       subject: `Contact form: ${safeSubject}`,
