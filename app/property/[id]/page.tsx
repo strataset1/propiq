@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
+import { timingSafeEqual } from "crypto";
 import { createServiceClient } from "@/lib/supabase/server";
 import { detectState, STATE_LAWS } from "@/lib/state-laws";
 import PropertyView from "./property-view";
@@ -16,7 +17,16 @@ export default async function PropertyPage({ params }: { params: Promise<{ id: s
   const { id } = await params;
   const supabase = createServiceClient();
   const cookieStore = await cookies();
-  const isAdmin = cookieStore.get("admin_token")?.value === process.env.ADMIN_SECRET;
+  const adminSecret = process.env.ADMIN_SECRET;
+  const providedToken = cookieStore.get("admin_token")?.value;
+  let isAdmin = false;
+  if (adminSecret && providedToken) {
+    try {
+      isAdmin = timingSafeEqual(Buffer.from(providedToken), Buffer.from(adminSecret));
+    } catch {
+      // timingSafeEqual throws if buffers differ in length — isAdmin stays false
+    }
+  }
 
   const [
     { data: property },
