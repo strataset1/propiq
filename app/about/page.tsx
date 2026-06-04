@@ -54,7 +54,7 @@ export default function AboutPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {[
               { icon: "🔍", title: "Instant search", desc: "Search any address, suburb, or ZIP code and see strata or HOA by-law data in seconds." },
-              { icon: "🤖", title: "AI extraction", desc: "Claude AI reads every document and extracts 12 structured data points per property — across AU and US formats." },
+              { icon: "🤖", title: "Intelligent Assistance", desc: "Our proprietary platform reads each document, extracting and restructuring 12 key insights per property — across AU and US." },
               { icon: "📄", title: "Original documents", desc: "Download the verified PDF directly — not a summary, the actual document." },
               { icon: "🔌", title: "API access", desc: "Integrate strata and HOA intelligence into your own platform via our REST API." },
             ].map((f) => (
