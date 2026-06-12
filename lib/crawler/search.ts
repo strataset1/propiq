@@ -200,9 +200,24 @@ export async function searchSuburbForPdfs(suburb: string, regionOverride?: "au" 
       messages: [{ role: "user", content: prompt }],
     });
 
-    const text = response.choices?.[0]?.message?.content ?? "";
-    console.log(`[search] ${suburb} (${region}) OpenAI response length: ${text.length}`);
+    const message = response.choices?.[0]?.message;
+    const text = message?.content ?? "";
+    console.log(`[search] ${suburb} (${region}) content length: ${text.length}`);
 
+    // Primary: extract from url_citation annotations (SDK v6 / newer model behaviour)
+    const annotations: any[] = (message as any)?.annotations ?? [];
+    console.log(`[search] ${suburb}: ${annotations.length} annotations`);
+    for (const ann of annotations) {
+      if (ann.type === "url_citation" && ann.url_citation?.url) {
+        const url = ann.url_citation.url as string;
+        if (!isNoisy(url, region) && !isGenericCdn(url) && !seen.has(url)) {
+          seen.add(url);
+          results.push({ url, title: ann.url_citation.title ?? url.split("/").pop() ?? url, source: "openai" });
+        }
+      }
+    }
+
+    // Fallback: regex scan of message text (older model behaviour)
     for (const url of extractPdfUrls(text)) {
       if (!isNoisy(url, region) && !isGenericCdn(url) && !seen.has(url)) {
         seen.add(url);
@@ -210,7 +225,12 @@ export async function searchSuburbForPdfs(suburb: string, regionOverride?: "au" 
       }
     }
   } catch (e) {
-    console.error(`[search] OpenAI error for ${suburb}:`, e instanceof Error ? e.message : e);
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error(`[search] OpenAI error for ${suburb}:`, msg);
+    if (msg.includes("429")) {
+      throw new Error("OpenAI quota exceeded — top up credits at platform.openai.com/account/billing");
+    }
+    throw e;
   }
 
   console.log(`[search] ${suburb}: ${results.length} PDFs`);

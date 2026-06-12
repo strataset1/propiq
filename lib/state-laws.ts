@@ -2,6 +2,7 @@ export type StateLawEntry = {
   takeaway: string;       // one-line shown in the collapsed badge
   detail: string;         // full text shown when expanded
   overridesHardNo: boolean; // true when state law makes a by-law "no" potentially unenforceable
+  value?: "yes" | "no" | "maybe"; // state law's own position on this category
 };
 
 export type AttributeStateLaws = {
@@ -16,6 +17,7 @@ export const STATE_LAWS: Record<string, AttributeStateLaws> = {
     interior_renovations: {
       takeaway: "NSW: Cosmetic work needs no approval — minor renos (floors, kitchens) need OC approval — structural work needs a special resolution",
       overridesHardNo: false,
+      value: "maybe",
       detail: `INTERIOR RENOVATION LAWS IN STRATA — New South Wales (NSW)
 
 The Strata Schemes Management Act 2015 (NSW) creates three tiers of internal works:
@@ -49,6 +51,7 @@ Practical summary: NSW has a well-defined tiered system — check which category
     exterior_renovations: {
       takeaway: "NSW: External changes affecting common property require a special resolution (75% vote) under s 110 SSMA 2015",
       overridesHardNo: false,
+      value: "maybe",
       detail: `EXTERIOR RENOVATION LAWS IN STRATA — New South Wales (NSW)
 
 External work in NSW strata almost always involves common property — the façade, external walls, windows, balconies and roofs are usually common property under the Strata Schemes Management Act 2015 (NSW).
@@ -75,6 +78,7 @@ Practical summary: for most external changes in NSW strata, assume you need a 75
     short_term_rental: {
       takeaway: "NSW: Strata can ban non-hosted Airbnb by by-law — hosted Airbnb (owner lives there) is harder to ban",
       overridesHardNo: false,
+      value: "maybe",
       detail: `SHORT-TERM RENTAL LAWS IN STRATA — New South Wales (NSW)
 
 Under s 137A of the Strata Schemes Management Act 2015 (NSW), an owners corporation can make a by-law prohibiting a lot from being used for short-term rental accommodation, but only where the lot is not the host's principal place of residence. Strata can target investment-style Airbnb use, but generally cannot ban hosted Airbnb where the owner or occupier lives there.
@@ -95,6 +99,7 @@ Practical summary: NSW gives strata real control over investor-style Airbnb, but
     pets_allowed: {
       takeaway: "NSW: Blanket pet bans are invalid under s 137B SSMA 2015 — a 'No' by-law may have no force or effect",
       overridesHardNo: true,
+      value: "yes",
       detail: `PET LAWS IN STRATA — New South Wales (NSW)
 
 Under s 137B of the Strata Schemes Management Act 2015 (NSW), a by-law has "no force or effect" if it "unreasonably prohibit[s] the keeping of an animal" on a lot. Keeping an animal is taken to be reasonable unless it causes "unreasonable interference" with another resident's use and enjoyment of their lot or common property.
@@ -114,6 +119,7 @@ Practical summary: pets are generally allowed unless they cause a genuine proble
     interior_renovations: {
       takeaway: "VIC: Internal works within your lot are generally permitted — OC approval needed if work affects common property or services",
       overridesHardNo: false,
+      value: "maybe",
       detail: `INTERIOR RENOVATION LAWS IN STRATA — Victoria (VIC)
 
 Under the Owners Corporations Act 2006 (VIC), lot owners are generally free to renovate within their own lot, provided the works do not affect common property, shared services (pipes, wiring) or the structural integrity of the building.
@@ -135,6 +141,7 @@ Practical summary: internal work is usually straightforward in VIC — just make
     exterior_renovations: {
       takeaway: "VIC: External changes affecting common property or the building's appearance require OC consent — check your building's rules",
       overridesHardNo: false,
+      value: "maybe",
       detail: `EXTERIOR RENOVATION LAWS IN STRATA — Victoria (VIC)
 
 In VIC strata, exterior elements such as the façade, external walls, balcony structures, windows and roofline are almost always common property under the Owners Corporations Act 2006 (VIC) and the relevant plan of subdivision.
@@ -156,6 +163,7 @@ Practical summary: always check your plan of subdivision and OC rules before com
     short_term_rental: {
       takeaway: "VIC: Owners corporations can ban short-stay accommodation by special resolution (from Jan 2025)",
       overridesHardNo: false,
+      value: "maybe",
       detail: `SHORT-TERM RENTAL LAWS IN STRATA — Victoria (VIC)
 
 From 1 January 2025, owners corporations can make rules banning the use of lots for short-stay accommodation. Consumer Affairs Victoria says this must be done by special resolution. Victoria also introduced a 7.5% short-stay levy from 1 January 2025, applying to stays of less than 28 consecutive days — paid by the booking platform if booked through a platform, or by the owner/tenant if booked directly.
@@ -171,6 +179,7 @@ Practical summary: Victoria is one of the tougher states for Airbnb in apartment
     pets_allowed: {
       takeaway: "VIC: Pets depend on building rules — overreaching blanket bans may be challengeable",
       overridesHardNo: false,
+      value: "maybe",
       detail: `PET LAWS IN STRATA — Victoria (VIC)
 
 Victoria is more by-law dependent. Pets are usually governed by the building's owners corporation rules under the Owners Corporations Act 2006 (Vic).
@@ -191,6 +200,7 @@ Practical summary: pets depend on the building rules, but overreaching bans may 
     interior_renovations: {
       takeaway: "QLD: Lot owners can renovate their lot freely — body corporate approval only needed if work affects common property",
       overridesHardNo: false,
+      value: "yes",
       detail: `INTERIOR RENOVATION LAWS IN STRATA — Queensland (QLD)
 
 Queensland is comparatively permissive. Under the Body Corporate and Community Management Act 1997 (Qld), lot owners have broad rights to deal with their lot as they see fit, provided the works do not affect common property, shared services or other lots.
@@ -212,6 +222,7 @@ Practical summary: QLD is one of the more owner-friendly states for internal ren
     exterior_renovations: {
       takeaway: "QLD: Changes affecting common property or the external appearance need body corporate approval — ordinary or special resolution depending on the works",
       overridesHardNo: false,
+      value: "maybe",
       detail: `EXTERIOR RENOVATION LAWS IN STRATA — Queensland (QLD)
 
 Under the Body Corporate and Community Management Act 1997 (Qld), external elements of a building such as the façade, roof, external walls and shared structural elements are typically common property.
@@ -233,6 +244,7 @@ Practical summary: get body corporate approval before any external works in QLD 
     short_term_rental: {
       takeaway: "QLD: Body corporates usually cannot ban Airbnb by by-law — but can regulate guest behaviour",
       overridesHardNo: true,
+      value: "yes",
       detail: `SHORT-TERM RENTAL LAWS IN STRATA — Queensland (QLD)
 
 Queensland is generally more Airbnb-friendly. Under s 180(3) of the Body Corporate and Community Management Act 1997 (Qld), a by-law cannot restrict the type of residential use of a lot. This is why many Queensland bodies corporate cannot simply ban Airbnb by by-law if the use remains residential.
@@ -250,6 +262,7 @@ Practical summary: QLD is one of the more Airbnb-friendly strata states, but bod
     pets_allowed: {
       takeaway: "QLD: Blanket pet bans and size/type/number limits are not allowed under s 169B BCCMA 1997",
       overridesHardNo: true,
+      value: "yes",
       detail: `PET LAWS IN STRATA — Queensland (QLD)
 
 Queensland is strongly pro-pet. Under s 169B of the Body Corporate and Community Management Act 1997 (Qld), a by-law must not "prohibit the keeping or bringing of an animal" or "restrict the number, type or size of an animal." Under s 180(7), by-laws must not be "oppressive or unreasonable." Under s 181, a person with a disability has the right to be accompanied by a guide, hearing or assistance dog — a by-law cannot restrict that right.
@@ -269,6 +282,7 @@ Practical summary: pets are generally allowed, but the body corporate can manage
     interior_renovations: {
       takeaway: "SA: Internal works within your lot are generally permitted — community/strata corporation approval needed for structural or common property work",
       overridesHardNo: false,
+      value: "maybe",
       detail: `INTERIOR RENOVATION LAWS IN STRATA — South Australia (SA)
 
 South Australia has two main strata frameworks: the Strata Titles Act 1988 (SA) and the Community Titles Act 1996 (SA).
@@ -290,6 +304,7 @@ Practical summary: SA follows similar principles to other states — cosmetic wo
     exterior_renovations: {
       takeaway: "SA: External changes affecting common property require community/strata corporation approval — check the registered by-laws",
       overridesHardNo: false,
+      value: "maybe",
       detail: `EXTERIOR RENOVATION LAWS IN STRATA — South Australia (SA)
 
 Under both the Strata Titles Act 1988 (SA) and the Community Titles Act 1996 (SA), external elements of a building are typically common property. Changes to common property require corporation approval.
@@ -310,6 +325,7 @@ Practical summary: approval is required for virtually all external changes in SA
     short_term_rental: {
       takeaway: "SA: By-laws and council/planning rules determine short-stay rights — check before assuming Airbnb is allowed",
       overridesHardNo: false,
+      value: "maybe",
       detail: `SHORT-TERM RENTAL LAWS IN STRATA — South Australia (SA)
 
 South Australia is more council and planning dependent, with less uniform statewide strata control than NSW or VIC.
@@ -325,6 +341,7 @@ Practical summary: check the by-laws, planning rules and registration requiremen
     pets_allowed: {
       takeaway: "SA: By-laws determine pet rules — blanket bans increasingly hard to justify",
       overridesHardNo: false,
+      value: "maybe",
       detail: `PET LAWS IN STRATA — South Australia (SA)
 
 South Australia is more dependent on the specific strata or body corporate by-laws.
@@ -344,6 +361,7 @@ Practical summary: check the registered by-laws before buying or renting.`,
     interior_renovations: {
       takeaway: "WA: Internal works within your lot are generally permitted — check scheme by-laws for structural or plumbing work",
       overridesHardNo: false,
+      value: "maybe",
       detail: `INTERIOR RENOVATION LAWS IN STRATA — Western Australia (WA)
 
 Under the Strata Titles Act 1985 (WA), as amended by the Strata Titles Amendment Act 2018 (commenced 2020), lot owners can generally renovate within their own lot without strata company approval, provided the works do not affect common property or shared services.
@@ -366,6 +384,7 @@ Practical summary: WA is similar to most other states — cosmetic work is fine,
     exterior_renovations: {
       takeaway: "WA: External changes to common property require strata company approval — check scheme by-laws before altering any exterior element",
       overridesHardNo: false,
+      value: "maybe",
       detail: `EXTERIOR RENOVATION LAWS IN STRATA — Western Australia (WA)
 
 In WA strata, external elements — the façade, external walls, roof, balcony structures and windows — are usually common property under the Strata Titles Act 1985 (WA).
@@ -387,6 +406,7 @@ Practical summary: check the scheme by-laws first — almost all external change
     short_term_rental: {
       takeaway: "WA: STRA registration mandatory from Jan 2025 — strata by-laws can still block Airbnb use",
       overridesHardNo: false,
+      value: "maybe",
       detail: `SHORT-TERM RENTAL LAWS IN STRATA — Western Australia (WA)
 
 The Short-Term Rental Accommodation Act 2024 (WA) underpins the WA STRA Register, which opened on 1 July 2024. Registration became mandatory from 1 January 2025. The WA Act recognises that a strata lot may not be eligible where short-term rental accommodation is prohibited under strata or community title by-laws.
@@ -402,6 +422,7 @@ Practical summary: WA is registration-heavy, and strata by-laws can still block 
     pets_allowed: {
       takeaway: "WA: By-laws determine pet rules — blanket bans increasingly hard to justify",
       overridesHardNo: false,
+      value: "maybe",
       detail: `PET LAWS IN STRATA — Western Australia (WA)
 
 Western Australia is more dependent on the specific strata or body corporate by-laws.
@@ -421,6 +442,7 @@ Practical summary: check the registered by-laws before buying or renting.`,
     interior_renovations: {
       takeaway: "TAS: Internal works within your lot are generally permitted — body corporate approval needed for structural or common property work",
       overridesHardNo: false,
+      value: "maybe",
       detail: `INTERIOR RENOVATION LAWS IN STRATA — Tasmania (TAS)
 
 Under the Strata Titles Act 1998 (TAS), lot owners can generally renovate within their lot without body corporate approval, provided the works do not affect common property or shared services.
@@ -441,6 +463,7 @@ Practical summary: TAS follows standard strata principles — cosmetic work is f
     exterior_renovations: {
       takeaway: "TAS: External changes affecting common property require body corporate approval under the Strata Titles Act 1998",
       overridesHardNo: false,
+      value: "maybe",
       detail: `EXTERIOR RENOVATION LAWS IN STRATA — Tasmania (TAS)
 
 Under the Strata Titles Act 1998 (TAS), external elements of a strata building are typically common property. Changes to common property require body corporate approval.
@@ -460,6 +483,7 @@ Practical summary: approval is required for external changes in TAS strata — c
     short_term_rental: {
       takeaway: "TAS: Moving toward more regulation — check by-laws and planning rules before assuming Airbnb is allowed",
       overridesHardNo: false,
+      value: "maybe",
       detail: `SHORT-TERM RENTAL LAWS IN STRATA — Tasmania (TAS)
 
 Tasmania has been moving toward more regulation, including recent short-stay levy proposals.
@@ -475,6 +499,7 @@ Practical summary: check the by-laws, planning rules and registration requiremen
     pets_allowed: {
       takeaway: "TAS: By-laws determine pet rules — blanket bans increasingly hard to justify",
       overridesHardNo: false,
+      value: "maybe",
       detail: `PET LAWS IN STRATA — Tasmania (TAS)
 
 Tasmania is more dependent on the specific strata or body corporate by-laws.
@@ -494,6 +519,7 @@ Practical summary: check the registered by-laws before buying or renting.`,
     interior_renovations: {
       takeaway: "NT: Internal works within your lot are generally permitted — body corporate approval needed for structural or common property work",
       overridesHardNo: false,
+      value: "maybe",
       detail: `INTERIOR RENOVATION LAWS IN STRATA — Northern Territory (NT)
 
 Under the Unit Title Schemes Act 2009 (NT), lot owners can generally renovate within their own lot without body corporate approval, provided the works do not affect common property or shared services.
@@ -514,6 +540,7 @@ Practical summary: NT follows standard unit title principles — cosmetic work i
     exterior_renovations: {
       takeaway: "NT: External changes affecting common property require body corporate approval under the Unit Title Schemes Act 2009",
       overridesHardNo: false,
+      value: "maybe",
       detail: `EXTERIOR RENOVATION LAWS IN STRATA — Northern Territory (NT)
 
 Under the Unit Title Schemes Act 2009 (NT), external elements of a unit title building are typically common property. Changes to common property require body corporate approval.
@@ -533,6 +560,7 @@ Practical summary: approval is required for external changes in NT unit title sc
     short_term_rental: {
       takeaway: "NT: By-laws and planning rules determine short-stay rights — check before assuming Airbnb is allowed",
       overridesHardNo: false,
+      value: "maybe",
       detail: `SHORT-TERM RENTAL LAWS IN STRATA — Northern Territory (NT)
 
 The Northern Territory has less uniform statewide strata control on short-term rentals.
@@ -547,6 +575,7 @@ Practical summary: check the by-laws, planning rules and registration requiremen
     pets_allowed: {
       takeaway: "NT: By-laws determine pet rules — blanket bans increasingly hard to justify",
       overridesHardNo: false,
+      value: "maybe",
       detail: `PET LAWS IN STRATA — Northern Territory (NT)
 
 The Northern Territory is more dependent on the specific body corporate by-laws.
@@ -566,6 +595,7 @@ Practical summary: check the registered by-laws before buying or renting.`,
     interior_renovations: {
       takeaway: "ACT: Internal works are governed by the unit plan and OC rules — structural or common property work needs OC approval",
       overridesHardNo: false,
+      value: "maybe",
       detail: `INTERIOR RENOVATION LAWS IN STRATA — Australian Capital Territory (ACT)
 
 Under the Unit Titles Act 2001 (ACT) and Unit Titles (Management) Act 2011 (ACT), lot owners can generally renovate within their own unit, but must comply with the unit plan and owners corporation rules.
@@ -587,6 +617,7 @@ Practical summary: internal work in the ACT is generally fine for cosmetic chang
     exterior_renovations: {
       takeaway: "ACT: External changes affecting common property require OC approval — Crown lease and unit plan constraints also apply",
       overridesHardNo: false,
+      value: "maybe",
       detail: `EXTERIOR RENOVATION LAWS IN STRATA — Australian Capital Territory (ACT)
 
 Under the Unit Titles Act 2001 (ACT) and Unit Titles (Management) Act 2011 (ACT), external elements of a unit title building are typically common property. Changes require owners corporation (OC) approval.
@@ -607,6 +638,7 @@ Practical summary: the ACT has more layers than other states for external works 
     short_term_rental: {
       takeaway: "ACT: Restrictions turn on the unit plan, lease purpose, zoning and owners corporation rules",
       overridesHardNo: false,
+      value: "maybe",
       detail: `SHORT-TERM RENTAL LAWS IN STRATA — Australian Capital Territory (ACT)
 
 ACT restrictions on short-term rentals often turn on the unit plan, lease purpose, zoning and owners corporation rules.
@@ -622,6 +654,7 @@ Practical summary: check the by-laws, planning rules and registration requiremen
     pets_allowed: {
       takeaway: "ACT: By-laws determine pet rules — blanket bans increasingly hard to justify",
       overridesHardNo: false,
+      value: "maybe",
       detail: `PET LAWS IN STRATA — Australian Capital Territory (ACT)
 
 The ACT is more dependent on the specific owners corporation by-laws.

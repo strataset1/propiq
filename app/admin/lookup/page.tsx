@@ -56,10 +56,18 @@ const VALUE_COLOURS: Record<string, string> = {
   maybe: "text-amber-400",
 };
 
+const LAW_VALUE_CONFIG = {
+  yes:   { label: "Allowed",     badge: "bg-emerald-500/15 text-emerald-400", border: "border-emerald-700/60 bg-emerald-950/20" },
+  no:    { label: "Restricted",  badge: "bg-red-500/15 text-red-400",         border: "border-red-700/60 bg-red-950/20"         },
+  maybe: { label: "Conditional", badge: "bg-amber-500/15 text-amber-400",     border: "border-amber-700/60 bg-amber-950/20"     },
+};
+
 function StateLawPanel({ law }: { law: StateLawEntry }) {
   const [open, setOpen] = useState(false);
+  const valueCfg = law.value ? LAW_VALUE_CONFIG[law.value] : null;
+  const borderCls = valueCfg ? valueCfg.border : law.overridesHardNo ? "border-amber-700/60 bg-amber-950/30" : "border-slate-700 bg-slate-800/50";
   return (
-    <div className={`rounded-lg border text-xs ${law.overridesHardNo ? "border-amber-700/60 bg-amber-950/30" : "border-slate-700 bg-slate-800/50"}`}>
+    <div className={`rounded-lg border text-xs ${borderCls}`}>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -68,9 +76,14 @@ function StateLawPanel({ law }: { law: StateLawEntry }) {
         <svg className="w-3.5 h-3.5 shrink-0 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20A10 10 0 0012 2z" />
         </svg>
-        <span className={`flex-1 font-medium ${law.overridesHardNo ? "text-amber-300" : "text-slate-300"}`}>
+        <span className={`flex-1 font-medium ${law.overridesHardNo || valueCfg ? "text-amber-300" : "text-slate-300"}`}>
           {law.takeaway}
         </span>
+        {valueCfg && (
+          <span className={`shrink-0 text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${valueCfg.badge}`}>
+            {valueCfg.label}
+          </span>
+        )}
         <svg
           className={`w-3 h-3 text-slate-500 transition-transform shrink-0 ${open ? "rotate-180" : ""}`}
           fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}
@@ -93,17 +106,43 @@ const ATTR_BG: Record<string, string> = {
   maybe: "bg-amber-500/10",
 };
 
+function StateLawDivider() {
+  return (
+    <div className="relative flex items-center gap-2 group/info">
+      <div className="h-px flex-1 bg-slate-700/40" />
+      <div className="flex items-center gap-1 cursor-default">
+        <span className="text-[10px] text-slate-600 uppercase tracking-wider font-medium">State Law Context</span>
+        <svg className="w-3 h-3 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </div>
+      <div className="h-px flex-1 bg-slate-700/40" />
+      <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover/info:block w-64 bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-400 shadow-xl z-20 pointer-events-none leading-relaxed">
+        State legislation applies to all buildings in this state. This may override or qualify what the by-law document says.
+      </div>
+    </div>
+  );
+}
+
 function AttributeCard({ label, attr, stateLaw }: { label: string; attr: ByLawAttribute; stateLaw?: StateLawEntry }) {
-  const val = attr.value ?? null;
-  const colour = VALUE_COLOURS[val ?? ""] ?? "text-slate-400";
-  const bg = val ? (ATTR_BG[val] ?? "bg-slate-800/50") : "bg-slate-800/50";
+  const rawVal = attr.value ?? null;
+  const effectiveVal = (rawVal === "no" && stateLaw?.overridesHardNo)
+    ? (stateLaw.value ?? "maybe")
+    : rawVal;
+  const colour = VALUE_COLOURS[effectiveVal ?? ""] ?? "text-slate-400";
+  const bg = effectiveVal ? (ATTR_BG[effectiveVal] ?? "bg-slate-800/50") : "bg-slate-800/50";
   return (
     <div className={`rounded-xl p-4 space-y-2 ${bg}`}>
       <div className="flex items-center justify-between">
         <p className="text-slate-300 text-sm font-medium">{label}</p>
-        <span className={`text-sm font-bold uppercase ${colour}`}>{val ?? "—"}</span>
+        <span className={`text-sm font-bold uppercase ${colour}`}>{effectiveVal ?? "—"}</span>
       </div>
-      {stateLaw && <StateLawPanel law={stateLaw} />}
+      {stateLaw && (
+        <>
+          <StateLawDivider />
+          <StateLawPanel law={stateLaw} />
+        </>
+      )}
     </div>
   );
 }

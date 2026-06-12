@@ -193,7 +193,12 @@ export default function PropertyView({
           <div className="grid grid-cols-2 gap-3">
             {BY_LAW_FIELDS.map(({ field, icon, key }) => {
               const rawValue = bylawData?.[key as keyof typeof bylawData] as string | null | undefined;
-              const cfg = rawValue ? VALUE_CONFIG[rawValue] : null;
+              const stateKey = key.replace("_value", "") as keyof AttributeStateLaws;
+              const stateLaw = stateLaws?.[stateKey] as StateLawEntry | undefined;
+              const effectiveValue = (rawValue === "no" && stateLaw?.overridesHardNo)
+                ? (stateLaw.value ?? "maybe")
+                : rawValue;
+              const cfg = effectiveValue ? VALUE_CONFIG[effectiveValue] : null;
               return (
                 <div
                   key={field}

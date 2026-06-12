@@ -239,7 +239,7 @@ export function SuburbList({ locations: initialLocations, crawledMap, docsBySubu
   // Bulk crawl state
   const [bulkCrawling, setBulkCrawling] = useState(false);
   const [bulkProgress, setBulkProgress] = useState<{
-    current: number; total: number; suburb: string; docsFound: number; errors: number;
+    current: number; total: number; suburb: string; docsFound: number; errors: number; abortReason?: string;
   } | null>(null);
   const stopBulkRef = useRef(false);
 
@@ -306,8 +306,17 @@ export function SuburbList({ locations: initialLocations, crawledMap, docsBySubu
           body: JSON.stringify({ suburb: loc.name, region: loc.region }),
         });
         const data = await res.json().catch(() => ({}));
-        if (res.ok) totalDocs += data.docsFound ?? 0;
-        else totalErrors++;
+        if (res.ok) {
+          totalDocs += data.docsFound ?? 0;
+        } else {
+          totalErrors++;
+          const errMsg: string = data.error ?? "";
+          if (errMsg.toLowerCase().includes("quota") || errMsg.includes("429")) {
+            stopBulkRef.current = true;
+            setBulkProgress((p) => p ? { ...p, abortReason: errMsg } : null);
+            break;
+          }
+        }
       } catch {
         totalErrors++;
       }
@@ -394,10 +403,16 @@ export function SuburbList({ locations: initialLocations, crawledMap, docsBySubu
                   </button>
                 </>
               ) : bulkProgress?.suburb === "Done" ? (
-                <span className="text-xs text-emerald-400">
-                  Done — {bulkProgress.docsFound} doc{bulkProgress.docsFound !== 1 ? "s" : ""} found
-                  {bulkProgress.errors > 0 && `, ${bulkProgress.errors} error${bulkProgress.errors !== 1 ? "s" : ""}`}
-                </span>
+                bulkProgress.abortReason ? (
+                  <span className="text-xs text-red-400 max-w-xs truncate" title={bulkProgress.abortReason}>
+                    Stopped — {bulkProgress.abortReason}
+                  </span>
+                ) : (
+                  <span className="text-xs text-emerald-400">
+                    Done — {bulkProgress.docsFound} doc{bulkProgress.docsFound !== 1 ? "s" : ""} found
+                    {bulkProgress.errors > 0 && `, ${bulkProgress.errors} error${bulkProgress.errors !== 1 ? "s" : ""}`}
+                  </span>
+                )
               ) : (
                 <div className="flex items-center gap-2">
                   {pendingCount > 0 && (
