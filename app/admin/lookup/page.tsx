@@ -148,16 +148,16 @@ function AttributeCard({ label, attr, stateLaw }: { label: string; attr: ByLawAt
 }
 
 const PARTY_COLOURS: Record<string, string> = {
-  lot_owner:    "text-amber-400",
-  strata:       "text-sky-400",
-  shared:       "text-purple-400",
+  lot_owner:    "text-red-400",
+  strata:       "text-emerald-400",
+  shared:       "text-amber-400",
   not_mentioned: "text-slate-600",
 };
 
 const PARTY_LABELS: Record<string, string> = {
-  lot_owner:    "Lot owner",
-  strata:       "Strata",
-  shared:       "Shared",
+  lot_owner:    "No",
+  strata:       "Yes",
+  shared:       "Maybe",
   not_mentioned: "Not mentioned",
 };
 

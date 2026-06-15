@@ -37,10 +37,10 @@ const VALUE_CONFIG: Record<string, { label: string; color: string; bg: string }>
 };
 
 const PARTY_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  lot_owner:    { label: "Owner",        color: "text-amber-400",   bg: "bg-amber-500/10"   },
-  strata:       { label: "Strata / HOA", color: "text-indigo-400",  bg: "bg-indigo-500/10"  },
-  shared:       { label: "Shared",       color: "text-purple-400",  bg: "bg-purple-500/10"  },
-  not_mentioned:{ label: "Not mentioned",color: "text-slate-500",   bg: "bg-slate-800/50"   },
+  lot_owner:    { label: "No",    color: "text-red-400",     bg: "bg-red-500/10"     },
+  strata:       { label: "Yes",   color: "text-emerald-400", bg: "bg-emerald-500/10" },
+  shared:       { label: "Maybe", color: "text-amber-400",   bg: "bg-amber-500/10"   },
+  not_mentioned:{ label: "Not mentioned", color: "text-slate-500", bg: "bg-slate-800/50" },
 };
 
 function StateLawBlock({ stateLaws, stateName }: { stateLaws?: AttributeStateLaws | null; stateName?: string }) {
@@ -92,12 +92,13 @@ interface Props {
   downloadUrl?: string | null;
   stateLaws?: AttributeStateLaws | null;
   stateName?: string;
+  documentDate?: string | null;
 }
 
 export default function PropertyView({
   address, hasBylaws, hasLiability, docs,
   isPurchased = false, bylawData, liabilityData, downloadUrl,
-  stateLaws, stateName,
+  stateLaws, stateName, documentDate,
 }: Props) {
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
 
@@ -154,6 +155,11 @@ export default function PropertyView({
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
               <p className="text-white font-semibold text-sm">{address}</p>
+              {documentDate && (
+                <span className="text-xs bg-slate-800 border border-slate-700 text-slate-400 px-2 py-0.5 rounded-full">
+                  {new Date(documentDate).getFullYear()}
+                </span>
+              )}
             </div>
             <p className="text-slate-400 text-sm">Unlock the full by-law summary and download the original PDF document.</p>
           </div>

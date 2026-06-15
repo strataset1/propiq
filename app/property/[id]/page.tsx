@@ -22,7 +22,7 @@ export default async function PropertyPage({ params }: { params: Promise<{ id: s
     { data: liab },
   ] = await Promise.all([
     supabase.from("properties").select("id, address_raw").eq("id", id).maybeSingle(),
-    supabase.from("strata_bylaws").select("id").eq("property_id", id).limit(1).maybeSingle(),
+    supabase.from("strata_bylaws").select("id, document_date").eq("property_id", id).limit(1).maybeSingle(),
     supabase.from("documents").select("id, label, type").eq("property_id", id).not("processed_at", "is", null).limit(10),
     supabase.from("strata_liability_extractions").select("id").eq("property_id", id).limit(1).maybeSingle(),
   ]);
@@ -61,6 +61,7 @@ export default async function PropertyPage({ params }: { params: Promise<{ id: s
           docs={docs ?? []}
           stateLaws={stateLaws}
           stateName={detectedState ?? undefined}
+          documentDate={(bylaws as any)?.document_date ?? null}
         />
       </div>
     </div>

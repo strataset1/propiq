@@ -77,7 +77,7 @@ Practical summary: for most external changes in NSW strata, assume you need a 75
     },
     short_term_rental: {
       takeaway: "NSW: Strata can ban non-hosted Airbnb by by-law — hosted Airbnb (owner lives there) is harder to ban",
-      overridesHardNo: false,
+      overridesHardNo: true,
       value: "maybe",
       detail: `SHORT-TERM RENTAL LAWS IN STRATA — New South Wales (NSW)
 
