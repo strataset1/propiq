@@ -227,8 +227,9 @@ function LocationRow({ location, crawled, docs: initialDocs, onToggle }: {
   );
 }
 
-export function SuburbList({ locations: initialLocations, crawledMap, docsBySuburb }: Props) {
+export function SuburbList({ locations: initialLocations, crawledMap: initialCrawledMap, docsBySuburb }: Props) {
   const [locations, setLocations] = useState<CrawlLocation[]>(initialLocations);
+  const [crawledMap, setCrawledMap] = useState<Record<string, CrawlRecord>>(initialCrawledMap);
 
   // Import state panel
   const [importCountry, setImportCountry] = useState<"au" | "us">("au");
@@ -307,7 +308,12 @@ export function SuburbList({ locations: initialLocations, crawledMap, docsBySubu
         });
         const data = await res.json().catch(() => ({}));
         if (res.ok) {
-          totalDocs += data.docsFound ?? 0;
+          const docsFound = data.docsFound ?? 0;
+          totalDocs += docsFound;
+          setCrawledMap((prev) => ({
+            ...prev,
+            [loc.name]: { suburb: loc.name, docs_found: docsFound, searched_at: new Date().toISOString() },
+          }));
         } else {
           totalErrors++;
           const errMsg: string = data.error ?? "";
