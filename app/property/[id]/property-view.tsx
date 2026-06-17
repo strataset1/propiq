@@ -37,9 +37,9 @@ const VALUE_CONFIG: Record<string, { label: string; color: string; bg: string }>
 };
 
 const PARTY_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  lot_owner:    { label: "No",    color: "text-red-400",     bg: "bg-red-500/10"     },
-  strata:       { label: "Yes",   color: "text-emerald-400", bg: "bg-emerald-500/10" },
-  shared:       { label: "Maybe", color: "text-amber-400",   bg: "bg-amber-500/10"   },
+  lot_owner:    { label: "Owner",  color: "text-sky-400",    bg: "bg-sky-500/10"    },
+  strata:       { label: "Strata", color: "text-violet-400", bg: "bg-violet-500/10" },
+  shared:       { label: "Shared", color: "text-orange-400", bg: "bg-orange-500/10" },
   not_mentioned:{ label: "Not mentioned", color: "text-slate-500", bg: "bg-slate-800/50" },
 };
 
@@ -234,7 +234,7 @@ export default function PropertyView({
       {/* Liability & risk summary */}
       {hasLiability && (
         <div>
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Liability &amp; risk summary</p>
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">By-law extraction</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {Object.entries(LIABILITY_LABELS).map(([key, meta]) => {
               const summary = liabilityData?.[`${key}_summary`] as string | null;

@@ -148,16 +148,16 @@ function AttributeCard({ label, attr, stateLaw }: { label: string; attr: ByLawAt
 }
 
 const PARTY_COLOURS: Record<string, string> = {
-  lot_owner:    "text-red-400",
-  strata:       "text-emerald-400",
-  shared:       "text-amber-400",
+  lot_owner:    "text-sky-400",
+  strata:       "text-violet-400",
+  shared:       "text-orange-400",
   not_mentioned: "text-slate-600",
 };
 
 const PARTY_LABELS: Record<string, string> = {
-  lot_owner:    "No",
-  strata:       "Yes",
-  shared:       "Maybe",
+  lot_owner:    "Owner",
+  strata:       "Strata",
+  shared:       "Shared",
   not_mentioned: "Not mentioned",
 };
 
@@ -398,10 +398,10 @@ export default function LookupPage() {
             <AttributeCard label="Exterior renovations" attr={result.exterior_renovations} stateLaw={stateLaws.exterior_renovations} />
           </div>
 
-          {/* Liability extraction fields */}
+          {/* By-law extraction fields */}
           {result.liability ? (
             <div className="space-y-3">
-              <h2 className="text-white font-medium text-sm">Liability Extraction</h2>
+              <h2 className="text-white font-medium text-sm">By-law Extraction</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {(
                   [
@@ -424,7 +424,7 @@ export default function LookupPage() {
             </div>
           ) : (
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
-              <p className="text-slate-500 text-sm">Liability extraction not yet run for this property</p>
+              <p className="text-slate-500 text-sm">By-law extraction not yet run for this property</p>
             </div>
           )}
 
