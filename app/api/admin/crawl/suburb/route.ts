@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
         docsFound++;
       } else if (outcome.reason !== "Duplicate") {
         errors.push(outcome.reason);
+        console.log(`[crawl/suburb] ${suburb} — skipped ${result.url}: ${outcome.reason}`);
       }
     }
 
