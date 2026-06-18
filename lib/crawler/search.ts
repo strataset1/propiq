@@ -210,6 +210,16 @@ Search using all of these approaches:
 Return ONLY a plain list of direct .pdf URLs, one per line, no explanations, no numbering, nothing else.`;
 }
 
+const US_HOA_KEYWORDS = [
+  "bylaw", "by-law", "declaration", "cc&r", "covenant", "hoa", "condo", "condominium",
+  "homeowner", "homeowners", "association", "rules", "regulation", "restriction",
+];
+
+function isRelevantUsResult(url: string, title: string): boolean {
+  const haystack = (url + " " + title).toLowerCase();
+  return US_HOA_KEYWORDS.some((kw) => haystack.includes(kw));
+}
+
 async function searchUsWithSerper(suburb: string, city: string, postcode: string | null): Promise<SearchResult[]> {
   const stateMatch = city.match(/\s+([A-Z]{2})$/);
   const stateCode = stateMatch?.[1] ?? null;
@@ -238,10 +248,12 @@ async function searchUsWithSerper(suburb: string, city: string, postcode: string
       const data = await res.json() as { organic?: { title?: string; link?: string }[] };
       for (const item of data.organic ?? []) {
         const url = item.link ?? "";
+        const title = item.title ?? "";
         if (!url.toLowerCase().endsWith(".pdf")) continue;
         if (isNoisy(url, "us") || isGenericCdn(url) || seen.has(url)) continue;
+        if (!isRelevantUsResult(url, title)) continue;
         seen.add(url);
-        results.push({ url, title: item.title ?? url.split("/").pop() ?? url, source: "serper" });
+        results.push({ url, title: title || url.split("/").pop() ?? url, source: "serper" });
       }
     } catch {
       // skip failed query
