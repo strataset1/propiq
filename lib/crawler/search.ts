@@ -210,9 +210,55 @@ Search using all of these approaches:
 Return ONLY a plain list of direct .pdf URLs, one per line, no explanations, no numbering, nothing else.`;
 }
 
+async function searchUsWithSerper(suburb: string, city: string, postcode: string | null): Promise<SearchResult[]> {
+  const stateMatch = city.match(/\s+([A-Z]{2})$/);
+  const stateCode = stateMatch?.[1] ?? null;
+  const stateName = stateCode ? (US_STATE_NAMES[stateCode] ?? stateCode) : "Washington";
+  const cleanCity = stateCode ? city.replace(/\s+[A-Z]{2}$/, "").trim() : city;
+  const loc = postcode ? `${cleanCity} ${postcode}` : `${cleanCity} ${stateName}`;
+
+  const queries = [
+    `"${loc}" "declaration of condominium" filetype:pdf`,
+    `"${loc}" "condominium declaration" filetype:pdf`,
+    `"${loc}" HOA bylaws filetype:pdf`,
+    `"${loc}" "CC&Rs" filetype:pdf`,
+  ];
+
+  const seen = new Set<string>();
+  const results: SearchResult[] = [];
+
+  for (const q of queries) {
+    try {
+      const res = await fetch("https://google.serper.dev/search", {
+        method: "POST",
+        headers: { "X-API-KEY": process.env.SERPER_API_KEY!, "Content-Type": "application/json" },
+        body: JSON.stringify({ q, num: 10, gl: "us", hl: "en" }),
+      });
+      if (!res.ok) continue;
+      const data = await res.json() as { organic?: { title?: string; link?: string }[] };
+      for (const item of data.organic ?? []) {
+        const url = item.link ?? "";
+        if (!url.toLowerCase().endsWith(".pdf")) continue;
+        if (isNoisy(url, "us") || isGenericCdn(url) || seen.has(url)) continue;
+        seen.add(url);
+        results.push({ url, title: item.title ?? url.split("/").pop() ?? url, source: "serper" });
+      }
+    } catch {
+      // skip failed query
+    }
+  }
+
+  console.log(`[search] ${suburb} (serper): ${results.length} PDFs`);
+  return results.slice(0, 30);
+}
+
 export async function searchSuburbForPdfs(suburb: string, regionOverride?: "au" | "us"): Promise<SearchResult[]> {
   const { city, postcode, state } = getSearchTerms(suburb);
   const region = regionOverride ?? getRegion(suburb);
+
+  if (region === "us" && process.env.SERPER_API_KEY) {
+    return searchUsWithSerper(suburb, city, postcode);
+  }
 
   if (!process.env.OPENAI_API_KEY) {
     console.warn("[search] OPENAI_API_KEY not set");
