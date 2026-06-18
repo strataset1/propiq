@@ -215,8 +215,12 @@ const US_HOA_KEYWORDS = [
   "homeowner", "homeowners", "association", "rules", "regulation", "restriction",
 ];
 
+const AU_DOMAINS = [".com.au", ".gov.au", ".net.au", ".org.au", ".edu.au", ".asn.au", ".id.au"];
+
 function isRelevantUsResult(url: string, title: string): boolean {
   const urlLower = url.toLowerCase();
+  // Reject Australian domains outright
+  if (AU_DOMAINS.some((d) => urlLower.includes(d))) return false;
   const titleLower = title.toLowerCase();
   // URL must contain a keyword — title alone is too noisy (law firm docs, magazines, etc.)
   const urlMatch = US_HOA_KEYWORDS.some((kw) => urlLower.includes(kw));
