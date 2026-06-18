@@ -157,12 +157,45 @@ Search using all of these approaches:
 Return ONLY a plain list of direct .pdf URLs, one per line, no explanations, no numbering, nothing else.`;
 }
 
+const WA_COUNTY_BY_CITY: Record<string, string> = {
+  Seattle: "King", Bellevue: "King", Redmond: "King", Kirkland: "King",
+  Renton: "King", Kent: "King", Shoreline: "King", Burien: "King",
+  Kenmore: "King", Bothell: "King", Auburn: "King", Covington: "King",
+  Tacoma: "Pierce", Lakewood: "Pierce", Puyallup: "Pierce", Gig_Harbor: "Pierce",
+  Spokane: "Spokane", Spokane_Valley: "Spokane",
+  Everett: "Snohomish", Marysville: "Snohomish", Edmonds: "Snohomish", Lynnwood: "Snohomish",
+  Vancouver: "Clark", Bellevue_WA: "Clark",
+  Olympia: "Thurston", Lacey: "Thurston", Tumwater: "Thurston",
+};
+
+function buildWaPrompt(cleanCity: string, zip: string | null): string {
+  const county = WA_COUNTY_BY_CITY[cleanCity.replace(" ", "_")] ?? "King";
+  const loc = zip ? `${cleanCity} ${zip}` : `${cleanCity}, Washington`;
+
+  return `Search the web for publicly accessible condominium declaration and HOA document PDF files for ${loc}, Washington State, USA.
+
+Washington condos file declarations with the county auditor (recorder). Try these searches:
+1. "${loc}" "declaration of condominium" filetype:pdf
+2. "${loc}" "condominium declaration" Washington filetype:pdf
+3. "${loc}" "CC&Rs" OR "covenants conditions restrictions" filetype:pdf
+4. site:${county.toLowerCase()}county.gov "${cleanCity}" condominium declaration pdf
+5. "${cleanCity} Washington" condo association bylaws filetype:pdf
+6. "${cleanCity} WA" HOA documents bylaws filetype:pdf
+7. "${loc}" "condominium act" rules regulations pdf
+
+Also search condo management company sites that operate in Washington (PREM Group, CWD, Windermere Property Management, Associa, FirstService) for ${cleanCity} condo documents.
+
+Return ONLY a plain list of direct .pdf URLs you find, one per line. No explanations.`;
+}
+
 function buildUsPrompt(city: string, zip: string | null): string {
-  // Extract US state code from city name e.g. "Beverly Hills CA" → "CA"
   const stateMatch = city.match(/\s+([A-Z]{2})$/);
   const stateCode = stateMatch ? stateMatch[1] : null;
   const stateName = stateCode ? (US_STATE_NAMES[stateCode] ?? stateCode) : "Washington";
   const cleanCity = stateCode ? city.replace(/\s+[A-Z]{2}$/, "").trim() : city;
+
+  if (stateCode === "WA") return buildWaPrompt(cleanCity, zip);
+
   const fullLocation = zip ? `${cleanCity} ${zip}` : `${cleanCity}, ${stateName}`;
 
   return `Search the web and find all publicly accessible HOA bylaws, CC&Rs, and condominium declaration PDF documents for ${fullLocation}, USA.
