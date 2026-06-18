@@ -216,8 +216,13 @@ const US_HOA_KEYWORDS = [
 ];
 
 function isRelevantUsResult(url: string, title: string): boolean {
-  const haystack = (url + " " + title).toLowerCase();
-  return US_HOA_KEYWORDS.some((kw) => haystack.includes(kw));
+  const urlLower = url.toLowerCase();
+  const titleLower = title.toLowerCase();
+  // URL must contain a keyword — title alone is too noisy (law firm docs, magazines, etc.)
+  const urlMatch = US_HOA_KEYWORDS.some((kw) => urlLower.includes(kw));
+  // Title match only counts if it's strong (multiple keywords)
+  const titleMatches = US_HOA_KEYWORDS.filter((kw) => titleLower.includes(kw)).length;
+  return urlMatch || titleMatches >= 2;
 }
 
 async function searchUsWithSerper(suburb: string, city: string, postcode: string | null): Promise<SearchResult[]> {
