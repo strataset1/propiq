@@ -258,7 +258,7 @@ async function searchUsWithSerper(suburb: string, city: string, postcode: string
         if (isNoisy(url, "us") || isGenericCdn(url) || seen.has(url)) continue;
         if (!isRelevantUsResult(url, title)) continue;
         seen.add(url);
-        results.push({ url, title: title || url.split("/").pop() ?? url, source: "serper" });
+        results.push({ url, title: title || (url.split("/").pop() ?? url), source: "serper" });
       }
     } catch {
       // skip failed query
