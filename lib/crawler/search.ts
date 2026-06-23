@@ -463,36 +463,37 @@ async function searchAuWithSerper(suburb: string, city: string, postcode: string
     ];
   }
 
-  const seen = new Set<string>();
-  const results: SearchResult[] = [];
-
-  for (const q of queries) {
+  const runQuery = async (q: string): Promise<{ url: string; title: string }[]> => {
     try {
       const res = await fetch("https://google.serper.dev/search", {
         method: "POST",
         headers: { "X-API-KEY": process.env.SERPER_API_KEY!, "Content-Type": "application/json" },
         body: JSON.stringify({ q, num: 10, gl: "au", hl: "en" }),
       });
-      if (!res.ok) continue;
+      if (!res.ok) return [];
       const data = await res.json() as { organic?: { title?: string; link?: string }[] };
-      for (const item of data.organic ?? []) {
-        const url = item.link ?? "";
-        const title = item.title ?? "";
-        const urlLower = url.toLowerCase();
-        const isPdf = urlLower.endsWith(".pdf");
-        const isHtml = AU_HTML_DOMAINS.some((d) => urlLower.includes(d));
-        if (!isPdf && !isHtml) continue;
-        if (isGenericCdn(url) || seen.has(url)) continue;
-        if (!isRelevantAuResult(url, title)) continue;
-        seen.add(url);
-        results.push({ url, title: title || (url.split("/").pop() ?? url), source: "serper" });
-      }
+      return (data.organic ?? []).map((item) => ({ url: item.link ?? "", title: item.title ?? "" }));
     } catch {
-      // skip failed query
+      return [];
     }
+  };
+
+  const allItems = (await Promise.all(queries.map(runQuery))).flat();
+
+  const seen = new Set<string>();
+  const results: SearchResult[] = [];
+  for (const { url, title } of allItems) {
+    const urlLower = url.toLowerCase();
+    const isPdf = urlLower.endsWith(".pdf");
+    const isHtml = AU_HTML_DOMAINS.some((d) => urlLower.includes(d));
+    if (!isPdf && !isHtml) continue;
+    if (isGenericCdn(url) || seen.has(url)) continue;
+    if (!isRelevantAuResult(url, title)) continue;
+    seen.add(url);
+    results.push({ url, title: title || (url.split("/").pop() ?? url), source: "serper" });
   }
 
-  console.log(`[search] ${suburb} (serper au): ${results.length} PDFs`);
+  console.log(`[search] ${suburb} (serper au): ${results.length} results`);
   return results.slice(0, 30);
 }
 
@@ -526,30 +527,31 @@ async function searchUsWithSerper(suburb: string, city: string, postcode: string
     ];
   }
 
-  const seen = new Set<string>();
-  const results: SearchResult[] = [];
-
-  for (const q of queries) {
+  const runQuery = async (q: string): Promise<{ url: string; title: string }[]> => {
     try {
       const res = await fetch("https://google.serper.dev/search", {
         method: "POST",
         headers: { "X-API-KEY": process.env.SERPER_API_KEY!, "Content-Type": "application/json" },
         body: JSON.stringify({ q, num: 10, gl: "us", hl: "en" }),
       });
-      if (!res.ok) continue;
+      if (!res.ok) return [];
       const data = await res.json() as { organic?: { title?: string; link?: string }[] };
-      for (const item of data.organic ?? []) {
-        const url = item.link ?? "";
-        const title = item.title ?? "";
-        if (!url.toLowerCase().endsWith(".pdf")) continue;
-        if (isNoisy(url, "us") || isGenericCdn(url) || seen.has(url)) continue;
-        if (!isRelevantUsResult(url, title)) continue;
-        seen.add(url);
-        results.push({ url, title: title || (url.split("/").pop() ?? url), source: "serper" });
-      }
+      return (data.organic ?? []).map((item) => ({ url: item.link ?? "", title: item.title ?? "" }));
     } catch {
-      // skip failed query
+      return [];
     }
+  };
+
+  const allItems = (await Promise.all(queries.map(runQuery))).flat();
+
+  const seen = new Set<string>();
+  const results: SearchResult[] = [];
+  for (const { url, title } of allItems) {
+    if (!url.toLowerCase().endsWith(".pdf")) continue;
+    if (isNoisy(url, "us") || isGenericCdn(url) || seen.has(url)) continue;
+    if (!isRelevantUsResult(url, title)) continue;
+    seen.add(url);
+    results.push({ url, title: title || (url.split("/").pop() ?? url), source: "serper" });
   }
 
   console.log(`[search] ${suburb} (serper): ${results.length} PDFs`);
