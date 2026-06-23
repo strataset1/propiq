@@ -9,6 +9,7 @@ const links = [
   { href: "/admin/upload", label: "Upload" },
   { href: "/admin/bulk-upload", label: "Bulk Upload" },
   { href: "/admin/crawl", label: "Crawler" },
+  { href: "/admin/strata", label: "NSW SP" },
   { href: "/admin/queue", label: "Queue" },
   { href: "/admin/orgs", label: "Organisations" },
 ];

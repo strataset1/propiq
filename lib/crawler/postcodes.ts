@@ -373,13 +373,38 @@ export function getRegion(suburb: string): "au" | "us" {
     : "au";
 }
 
+function inferAuState(city: string, postcode: string | null): string | null {
+  if (postcode) {
+    const pc = parseInt(postcode, 10);
+    if (pc >= 200 && pc <= 299) return "ACT";
+    if (pc >= 800 && pc <= 899) return "NT";
+    if (pc >= 1000 && pc <= 2599) return "NSW";
+    if (pc >= 2600 && pc <= 2618) return "ACT";
+    if (pc >= 2619 && pc <= 2899) return "NSW";
+    if (pc >= 2900 && pc <= 2920) return "ACT";
+    if (pc >= 2921 && pc <= 2999) return "NSW";
+    if (pc >= 3000 && pc <= 3999) return "VIC";
+    if (pc >= 4000 && pc <= 4999) return "QLD";
+    if (pc >= 5000 && pc <= 5999) return "SA";
+    if (pc >= 6000 && pc <= 6999) return "WA";
+    if (pc >= 7000 && pc <= 7999) return "TAS";
+  }
+  // No postcode — try appending each AU state code and see if the compound key is in the map
+  for (const s of ["NSW", "VIC", "QLD", "SA", "WA", "TAS", "ACT", "NT"]) {
+    if (POSTCODE_MAP[`${city} ${s}`]) return s;
+  }
+  return null;
+}
+
 export function getSearchTerms(suburb: string): { suburb: string; postcode: string | null; city: string; state: string | null } {
   const postcode = getPostcode(suburb);
   const stateMatch = suburb.match(/\s+(NSW|VIC|QLD|SA|WA|TAS|ACT|NT)$/i);
-  const state = stateMatch ? stateMatch[1].toUpperCase() : null;
   const city = suburb
     .replace(/\s+(NSW|VIC|QLD|SA|WA|TAS|ACT|NT)$/i, "")
     .replace(/\s+Seattle$/, "")
     .trim();
+  const state = stateMatch
+    ? stateMatch[1].toUpperCase()
+    : (getRegion(suburb) === "au" ? inferAuState(city, postcode) : null);
   return { suburb, postcode, city, state };
 }

@@ -632,6 +632,157 @@ export type Database = {
         }
         Relationships: []
       }
+      strata_plans: {
+        Row: {
+          id: number
+          sp_number: string
+          plan_number_int: number | null
+          address: string | null
+          suburb: string | null
+          postcode: string | null
+          lga: string | null
+          lots_count: number | null
+          registration_date: string | null
+          last_agm_date: string | null
+          last_reported_date: string | null
+          strata_manager_name: string | null
+          strata_manager_licence: string | null
+          source_url: string | null
+          crawled_at: string
+          raw_json: Json | null
+        }
+        Insert: {
+          id?: number
+          sp_number: string
+          plan_number_int?: number | null
+          address?: string | null
+          suburb?: string | null
+          postcode?: string | null
+          lga?: string | null
+          lots_count?: number | null
+          registration_date?: string | null
+          last_agm_date?: string | null
+          last_reported_date?: string | null
+          strata_manager_name?: string | null
+          strata_manager_licence?: string | null
+          source_url?: string | null
+          crawled_at?: string
+          raw_json?: Json | null
+        }
+        Update: {
+          id?: number
+          sp_number?: string
+          plan_number_int?: number | null
+          address?: string | null
+          suburb?: string | null
+          postcode?: string | null
+          lga?: string | null
+          lots_count?: number | null
+          registration_date?: string | null
+          last_agm_date?: string | null
+          last_reported_date?: string | null
+          strata_manager_name?: string | null
+          strata_manager_licence?: string | null
+          source_url?: string | null
+          crawled_at?: string
+          raw_json?: Json | null
+        }
+        Relationships: []
+      }
+      strata_doc_searches: {
+        Row: {
+          id: number
+          sp_number: string
+          query: string
+          search_provider: string
+          searched_at: string
+          raw_results: Json | null
+        }
+        Insert: {
+          id?: number
+          sp_number: string
+          query: string
+          search_provider: string
+          searched_at?: string
+          raw_results?: Json | null
+        }
+        Update: {
+          id?: number
+          sp_number?: string
+          query?: string
+          search_provider?: string
+          searched_at?: string
+          raw_results?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "strata_doc_searches_sp_number_fkey"
+            columns: ["sp_number"]
+            isOneToOne: false
+            referencedRelation: "strata_plans"
+            referencedColumns: ["sp_number"]
+          },
+        ]
+      }
+      strata_documents: {
+        Row: {
+          id: number
+          sp_number: string | null
+          url: string
+          source_domain: string | null
+          document_title: string | null
+          document_type: string | null
+          is_actual_bylaws: boolean | null
+          is_contract_pack: boolean | null
+          contains_bylaws: boolean | null
+          confidence: number | null
+          downloaded_at: string | null
+          file_hash: string | null
+          extracted_text: string | null
+          raw_metadata: Json | null
+        }
+        Insert: {
+          id?: number
+          sp_number?: string | null
+          url: string
+          source_domain?: string | null
+          document_title?: string | null
+          document_type?: string | null
+          is_actual_bylaws?: boolean | null
+          is_contract_pack?: boolean | null
+          contains_bylaws?: boolean | null
+          confidence?: number | null
+          downloaded_at?: string | null
+          file_hash?: string | null
+          extracted_text?: string | null
+          raw_metadata?: Json | null
+        }
+        Update: {
+          id?: number
+          sp_number?: string | null
+          url?: string
+          source_domain?: string | null
+          document_title?: string | null
+          document_type?: string | null
+          is_actual_bylaws?: boolean | null
+          is_contract_pack?: boolean | null
+          contains_bylaws?: boolean | null
+          confidence?: number | null
+          downloaded_at?: string | null
+          file_hash?: string | null
+          extracted_text?: string | null
+          raw_metadata?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "strata_documents_sp_number_fkey"
+            columns: ["sp_number"]
+            isOneToOne: false
+            referencedRelation: "strata_plans"
+            referencedColumns: ["sp_number"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

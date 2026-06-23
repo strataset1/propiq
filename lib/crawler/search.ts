@@ -1,11 +1,35 @@
 import OpenAI from "openai";
 import { getSearchTerms, getRegion } from "./postcodes";
 
+// Must stay in sync with AU_HTML_DOMAINS in ingest-light.ts
+const AU_HTML_DOMAINS = [
+  "acsl.net.au",
+  "bccm.qld.gov.au",
+  "ncat.nsw.gov.au",
+  "vcat.vic.gov.au",
+  "sacat.sa.gov.au",
+];
+
 const AU_NOISE_DOMAINS = [
+  // NSW
   "parliament.nsw.gov.au", "nsw.gov.au", "legislation.nsw.gov.au",
-  "austlii.edu.au", "planning.nsw.gov.au", "vic.gov.au",
-  "legislation.vic.gov.au", "abs.gov.au", "fairtrading.nsw.gov.au",
-  "consumer.vic.gov.au", "sa.gov.au", "landservices.com.au",
+  "planning.nsw.gov.au", "fairtrading.nsw.gov.au",
+  // VIC
+  "vic.gov.au", "legislation.vic.gov.au", "consumer.vic.gov.au",
+  // QLD
+  "legislation.qld.gov.au", "housing.qld.gov.au", "qld.gov.au",
+  // WA
+  "legislation.wa.gov.au", "commerce.wa.gov.au",
+  // SA
+  "sa.gov.au", "landservices.com.au", "lawhandbook.sa.gov.au",
+  // ACT
+  "legislation.act.gov.au", "act.gov.au",
+  // TAS
+  "legislation.tas.gov.au", "nre.tas.gov.au",
+  // NT
+  "legislation.nt.gov.au", "nt.gov.au",
+  // National
+  "austlii.edu.au", "abs.gov.au",
 ];
 
 const US_NOISE_DOMAINS = [
@@ -47,7 +71,7 @@ function extractPdfUrls(text: string): string[] {
 export type SearchResult = {
   url: string;
   title: string;
-  source: "openai";
+  source: "openai" | "serper";
 };
 
 function buildAuPrompt(city: string, postcode: string | null, state: string | null): string {
@@ -229,6 +253,249 @@ function isRelevantUsResult(url: string, title: string): boolean {
   return urlMatch || titleMatches >= 2;
 }
 
+const AU_STRATA_KEYWORDS = [
+  "by-law", "bylaw", "bylaws", "strata-plan", "strata_plan",
+  "owners-corp", "owners_corp", "oc-rules", "oc_rules",
+  "body-corporate", "body_corporate", "community-management",
+  "community-title", "unit-title", "strata", "scheme-by-law",
+];
+
+// These domains are known hosts for AU strata by-law PDFs or contract packs.
+// Results from them are accepted regardless of URL keyword match.
+const AU_PRIORITY_DOMAINS = [
+  "ren.com.au",
+  "fnebooks.com",
+  "hashtaghub.com.au",
+  "zenu",
+  "eagleagent",
+  "propertydocs.com.au",
+  "agentboxcdn.com.au",
+  "vaultre.com.au",
+  "campaigntrack.com",
+  "aro-au-prod-storage",
+  // Tribunal sites — HTML decisions that quote by-law content (scraped as text, not PDFs)
+  "acsl.net.au",       // WA: WASAT decisions
+  "bccm.qld.gov.au",  // QLD: Body Corporate Commissioner orders
+  "ncat.nsw.gov.au",  // NSW: NCAT strata decisions
+  "vcat.vic.gov.au",  // VIC: VCAT owners corporation decisions
+  "sacat.sa.gov.au",  // SA: SACAT strata decisions
+];
+
+function isRelevantAuResult(url: string, title: string): boolean {
+  const urlLower = url.toLowerCase();
+  if (AU_PRIORITY_DOMAINS.some((d) => urlLower.includes(d))) return true;
+  if (isNoisy(url, "au")) return false;
+  const titleLower = title.toLowerCase();
+  const urlMatch = AU_STRATA_KEYWORDS.some((kw) => urlLower.includes(kw));
+  const titleMatch = [
+    "by-law", "bylaw", "strata", "owners corporation", "body corporate",
+    "community management", "unit title", "oc rules",
+  ].some((kw) => titleLower.includes(kw));
+  return urlMatch || titleMatch;
+}
+
+// Extract a NSW strata plan number from a URL or document title.
+// Returns the integer plan number (e.g. 75234 for SP75234), or null if not found.
+export function extractSpFromUrl(url: string, title: string): number | null {
+  const combined = `${decodeURIComponent(url)} ${title}`;
+  const spMatch = combined.match(/\bSP[\s\-]?(\d{3,6})\b/i);
+  if (spMatch) {
+    const n = parseInt(spMatch[1], 10);
+    return n > 0 ? n : null;
+  }
+  const planMatch = combined.match(/strata\s+plan\s+(?:no\.?\s*)?(\d{3,6})\b/i);
+  if (planMatch) {
+    const n = parseInt(planMatch[1], 10);
+    return n > 0 ? n : null;
+  }
+  return null;
+}
+
+async function searchAuWithSerper(suburb: string, city: string, postcode: string | null, state: string | null): Promise<SearchResult[]> {
+  const loc = postcode ? `${city} ${postcode}` : state ? `${city} ${state}` : city;
+
+  let queries: string[];
+
+  if (state === "VIC") {
+    // VIC uses "owners corporation rules" — NEVER "by-laws". Plans are PS (Plan of Subdivision).
+    queries = [
+      `"${loc}" "owners corporation rules" filetype:pdf`,
+      `"${loc}" "OC rules" filetype:pdf`,
+      `"${city} VIC" "owners corporation rules" filetype:pdf`,
+      `"${city} Victoria" "owners corporation rules" filetype:pdf`,
+      `"${loc}" "Plan of Subdivision" "owners corporation rules" filetype:pdf`,
+      `site:aro-au-prod-storage.s3-ap-southeast-2.amazonaws.com "${postcode ?? city}" owners corporation`,
+      `site:propertydocs.com.au "${city}" "owners corporation"`,
+      `site:vaultre.com.au "${city}" "owners corporation rules"`,
+      `site:agentboxcdn.com.au "${city}" "owners corporation"`,
+      `site:campaigntrack.com "${city}" "owners corporation rules"`,
+      `site:fnebooks.com "${city}" "owners corporation"`,
+      `site:vcat.vic.gov.au "${city}" "owners corporation"`,
+    ];
+  } else if (state === "QLD") {
+    // QLD key document is "community management statement" (CMS) — by-laws are a section within it.
+    // Legacy schemes use BUP (Building Unit Plan) or GTP (Group Titles Plan).
+    queries = [
+      `"${loc}" "community management statement" filetype:pdf`,
+      `"${loc}" "body corporate by-laws" filetype:pdf`,
+      `"${city} QLD" "community management statement" filetype:pdf`,
+      `"${city} Queensland" "community management statement" filetype:pdf`,
+      `"${loc}" "community titles scheme" by-laws filetype:pdf`,
+      `"${loc}" "body corporate" by-laws filetype:pdf`,
+      `site:aro-au-prod-storage.s3-ap-southeast-2.amazonaws.com "${postcode ?? city}" community management`,
+      `site:propertydocs.com.au "${city}" "body corporate"`,
+      `site:vaultre.com.au "${city}" "community management statement"`,
+      `site:agentboxcdn.com.au "${city}" "body corporate"`,
+      `site:campaigntrack.com "${city}" "body corporate"`,
+      `site:fnebooks.com "${city}" "body corporate"`,
+      // BCCM adjudication orders (HTML pages that quote by-laws verbatim)
+      `site:bccm.qld.gov.au "${city}" "body corporate"`,
+    ];
+  } else if (state === "WA") {
+    // WA by-laws live in Landgate management statements (paid). Public web sources are thin:
+    // best sources are WASAT tribunal decisions (acsl.net.au) which quote by-law content,
+    // and contract pack PDFs from real estate agents.
+    queries = [
+      // Broader searches — catches WASAT decisions and council agendas
+      `"${city} WA" strata "by-laws" filetype:pdf`,
+      `"${city}" "Strata Plan" "by-laws" filetype:pdf`,
+      `"${city} Western Australia" strata "by-laws" filetype:pdf`,
+      // WASAT tribunal decisions — HTML pages, scraped for by-law content
+      `site:acsl.net.au "${city}" strata`,
+      `site:acsl.net.au "${city} WA" "scheme by-laws"`,
+      // Specific WA terminology
+      `"${loc}" "scheme by-laws" filetype:pdf`,
+      `"${loc}" "strata company" by-laws filetype:pdf`,
+      `"${loc}" "community rules" "community titles" filetype:pdf`,
+      `"${loc}" "survey-strata" by-laws filetype:pdf`,
+      // Contract pack / real estate sources
+      `site:aro-au-prod-storage.s3-ap-southeast-2.amazonaws.com "${postcode ?? city}" strata`,
+      `site:propertydocs.com.au "${city}" strata`,
+      `site:vaultre.com.au "${city}" strata`,
+      `site:agentboxcdn.com.au "${city}" strata`,
+      `site:campaigntrack.com "${city}" strata`,
+    ];
+  } else if (state === "SA") {
+    // SA has TWO distinct regimes with different terminology:
+    // - Strata Titles Act 1988: uses "articles" (not by-laws!) with plan prefix "S" (e.g. S12345)
+    // - Community Titles Act 1996: uses "by-laws" with plan prefix "C" (e.g. C12345)
+    queries = [
+      // Community title (by-laws)
+      `"${loc}" "community title" by-laws filetype:pdf`,
+      `"${loc}" "community corporation" by-laws filetype:pdf`,
+      `"${city} SA" "community title" by-laws filetype:pdf`,
+      // Strata (articles — the correct SA strata term)
+      `"${loc}" "strata corporation" articles filetype:pdf`,
+      `"${loc}" strata articles "Strata Titles Act" filetype:pdf`,
+      `"${city} SA" "strata corporation" articles filetype:pdf`,
+      // Broader fallbacks
+      `"${loc}" "strata by-laws" filetype:pdf`,
+      `site:aro-au-prod-storage.s3-ap-southeast-2.amazonaws.com "${postcode ?? city}" strata`,
+      `site:propertydocs.com.au "${city}" strata`,
+      `site:vaultre.com.au "${city}" strata`,
+      `site:agentboxcdn.com.au "${city}" strata`,
+    ];
+  } else if (state === "ACT") {
+    // ACT uses "owners corporation rules" (not by-laws). Plans are UP (Units Plan).
+    queries = [
+      `"${loc}" "owners corporation rules" filetype:pdf`,
+      `"${loc}" "unit plan" "owners corporation rules" filetype:pdf`,
+      `"${loc}" "unit title" rules filetype:pdf`,
+      `"${city} ACT" "owners corporation rules" filetype:pdf`,
+      `"${city} Canberra" "owners corporation rules" filetype:pdf`,
+      `site:aro-au-prod-storage.s3-ap-southeast-2.amazonaws.com "${postcode ?? city}" owners corporation`,
+      `site:propertydocs.com.au "${city}" "unit title"`,
+      `site:vaultre.com.au "${city}" "owners corporation"`,
+      `site:agentboxcdn.com.au "${city}" "owners corporation"`,
+    ];
+  } else if (state === "TAS") {
+    // TAS uses "by-laws" / "body corporate" under Strata Titles Act 1998.
+    // Custom by-laws must be lodged with Recorder of Titles within 3 months.
+    queries = [
+      `"${loc}" "strata by-laws" filetype:pdf`,
+      `"${loc}" "body corporate" by-laws filetype:pdf`,
+      `"${loc}" strata plan by-laws filetype:pdf`,
+      `"${city} TAS" "strata by-laws" filetype:pdf`,
+      `"${city} Tasmania" "strata by-laws" filetype:pdf`,
+      `site:aro-au-prod-storage.s3-ap-southeast-2.amazonaws.com "${postcode ?? city}" strata`,
+      `site:propertydocs.com.au "${city}" strata`,
+      `site:vaultre.com.au "${city}" strata`,
+      `site:agentboxcdn.com.au "${city}" strata`,
+      // SACAT strata/community title decisions — HTML pages with by-law content
+      `site:sacat.sa.gov.au "${city}" strata`,
+    ];
+  } else if (state === "NT") {
+    // NT uses "by-laws" under Unit Title Schemes Act 2009. Governing body is Body Corporate.
+    // Very small market — Darwin is the primary target.
+    queries = [
+      `"${loc}" "unit title" by-laws filetype:pdf`,
+      `"${loc}" "unit plan" rules filetype:pdf`,
+      `"${loc}" "unit title scheme" filetype:pdf`,
+      `"${city} NT" "unit title" by-laws filetype:pdf`,
+      `"${city} Darwin" "unit title scheme" by-laws filetype:pdf`,
+      `"${loc}" "body corporate" by-laws filetype:pdf`,
+      `site:aro-au-prod-storage.s3-ap-southeast-2.amazonaws.com "${postcode ?? city}" unit title`,
+      `site:propertydocs.com.au "${city}" strata`,
+      `site:vaultre.com.au "${city}" strata`,
+    ];
+  } else {
+    // NSW default — also catches unknown states.
+    // Plans are SP (Strata Plan). By-laws registered against common property title.
+    // ren.com.au is a Newcastle-specific agency — only useful for NSW.
+    queries = [
+      // Direct by-law document searches
+      `"${loc}" "strata by-laws" filetype:pdf`,
+      `"${loc}" "consolidated by-laws" strata filetype:pdf`,
+      `"${loc}" "registered by-laws" strata filetype:pdf`,
+      `"Strata Plan By-laws" "${city}" filetype:pdf`,
+      `"${city} NSW" "Strata Plan By-laws" filetype:pdf`,
+      `"THE OWNERS - STRATA PLAN NO" "${city}" "CHANGE OF BY-LAWS"`,
+      // Priority domain searches — contract packs include by-law schedules
+      `site:aro-au-prod-storage.s3-ap-southeast-2.amazonaws.com "${postcode ?? city}" by-laws`,
+      `site:ren.com.au/PDF "${city}" strata`,
+      `site:propertydocs.com.au "${city}" strata`,
+      `site:vaultre.com.au "${city}" "strata by-laws"`,
+      `site:agentboxcdn.com.au "${city}" strata`,
+      `site:campaigntrack.com "${city}" "strata by-laws"`,
+      `site:fnebooks.com "${city}" strata`,
+      // NCAT strata decisions — HTML pages that quote by-law content
+      `site:ncat.nsw.gov.au "${city}" strata`,
+    ];
+  }
+
+  const seen = new Set<string>();
+  const results: SearchResult[] = [];
+
+  for (const q of queries) {
+    try {
+      const res = await fetch("https://google.serper.dev/search", {
+        method: "POST",
+        headers: { "X-API-KEY": process.env.SERPER_API_KEY!, "Content-Type": "application/json" },
+        body: JSON.stringify({ q, num: 10, gl: "au", hl: "en" }),
+      });
+      if (!res.ok) continue;
+      const data = await res.json() as { organic?: { title?: string; link?: string }[] };
+      for (const item of data.organic ?? []) {
+        const url = item.link ?? "";
+        const title = item.title ?? "";
+        const urlLower = url.toLowerCase();
+        const isPdf = urlLower.endsWith(".pdf");
+        const isHtml = AU_HTML_DOMAINS.some((d) => urlLower.includes(d));
+        if (!isPdf && !isHtml) continue;
+        if (isGenericCdn(url) || seen.has(url)) continue;
+        if (!isRelevantAuResult(url, title)) continue;
+        seen.add(url);
+        results.push({ url, title: title || (url.split("/").pop() ?? url), source: "serper" });
+      }
+    } catch {
+      // skip failed query
+    }
+  }
+
+  console.log(`[search] ${suburb} (serper au): ${results.length} PDFs`);
+  return results.slice(0, 30);
+}
+
 async function searchUsWithSerper(suburb: string, city: string, postcode: string | null, auState?: string | null): Promise<SearchResult[]> {
   // auState === "WA" means Washington state (AU parser strips it from suburb name)
   const isWashington = auState === "WA";
@@ -295,6 +562,10 @@ export async function searchSuburbForPdfs(suburb: string, regionOverride?: "au" 
 
   if (region === "us" && process.env.SERPER_API_KEY) {
     return searchUsWithSerper(suburb, city, postcode, state);
+  }
+
+  if (region === "au" && process.env.SERPER_API_KEY) {
+    return searchAuWithSerper(suburb, city, postcode, state);
   }
 
   if (!process.env.OPENAI_API_KEY) {

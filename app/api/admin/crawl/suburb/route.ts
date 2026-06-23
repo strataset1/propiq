@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
-import { searchSuburbForPdfs } from "@/lib/crawler/search";
-import { ingestPdfLight } from "@/lib/crawler/ingest-light";
+import { searchSuburbForPdfs, extractSpFromUrl } from "@/lib/crawler/search";
+import { ingestPdfLight, ingestHtmlPage, isHtmlDomain } from "@/lib/crawler/ingest-light";
 
 export const maxDuration = 300;
 
@@ -21,12 +21,38 @@ export async function POST(req: NextRequest) {
     const errors: string[] = [];
 
     for (const result of results) {
-      const outcome = await ingestPdfLight(result.url, suburb, supabase, region);
+      let outcome = await ingestPdfLight(result.url, suburb, supabase, region);
+      if (!outcome.ok && outcome.reason === "Not a PDF" && region === "au" && isHtmlDomain(result.url)) {
+        outcome = await ingestHtmlPage(result.url, suburb, supabase, region);
+      }
       if (outcome.ok) {
         docsFound++;
       } else if (outcome.reason !== "Duplicate") {
         errors.push(outcome.reason);
         console.log(`[crawl/suburb] ${suburb} — skipped ${result.url}: ${outcome.reason}`);
+      }
+    }
+
+    // For AU suburbs, extract SP numbers from discovered URLs and populate strata_plans.
+    if (region === "au") {
+      const discovered = new Map<number, string>();
+      for (const r of results) {
+        const sp = extractSpFromUrl(r.url, r.title);
+        if (sp && !discovered.has(sp)) discovered.set(sp, r.url);
+      }
+      if (discovered.size > 0) {
+        const suburbBase = suburb.replace(/\s+\w{2,3}$/, "").replace(/\s+\d{4}$/, "").trim();
+        const records = Array.from(discovered.entries()).map(([n, url]) => ({
+          sp_number: `SP${n}`,
+          plan_number_int: n,
+          suburb: suburbBase,
+          source_url: url,
+        }));
+        await supabase.from("strata_plans").upsert(records as any[], {
+          onConflict: "sp_number",
+          ignoreDuplicates: true,
+        });
+        console.log(`[crawl/suburb] ${suburb} — auto-discovered ${discovered.size} SP numbers`);
       }
     }
 
