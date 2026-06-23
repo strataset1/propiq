@@ -125,7 +125,7 @@ function LocationRow({ location, crawled, docs: initialDocs, onToggle }: {
 }) {
   const [open, setOpen]         = useState(false);
   const [status, setStatus]     = useState<SuburbState>("idle");
-  const [result, setResult]     = useState<{ docsFound: number; searched: number } | null>(null);
+  const [result, setResult]     = useState<{ docsFound: number; searched: number; errors: string[] } | null>(null);
   const [docs, setDocs]         = useState<DocRecord[]>(initialDocs);
   const [errorMsg, setErrorMsg] = useState("");
   const [toggling, setToggling] = useState(false);
@@ -143,7 +143,7 @@ function LocationRow({ location, crawled, docs: initialDocs, onToggle }: {
       clearTimeout(timeoutId);
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { setStatus("error"); setErrorMsg(data.error ?? `Error ${res.status}`); return; }
-      setResult({ docsFound: data.docsFound ?? 0, searched: data.searched ?? 0 });
+      setResult({ docsFound: data.docsFound ?? 0, searched: data.searched ?? 0, errors: data.errors ?? [] });
       setStatus("done"); setOpen(true);
       const supabase = createClient();
       const { data: freshDocs } = await supabase.from("documents")
@@ -206,8 +206,11 @@ function LocationRow({ location, crawled, docs: initialDocs, onToggle }: {
         </div>
       </div>
       {status === "done" && result && (
-        <div className="border-t border-emerald-900/50 bg-emerald-950/20 px-4 py-2">
-          <p className="text-xs text-emerald-400">{result.searched} URLs searched — {result.docsFound} new doc{result.docsFound !== 1 ? "s" : ""} added.</p>
+        <div className="border-t border-emerald-900/50 bg-emerald-950/20 px-4 py-2 space-y-1">
+          <p className="text-xs text-emerald-400">{result.searched} URLs searched — {result.docsFound} new doc{result.docsFound !== 1 ? "s" : ""} added{result.errors.length > 0 ? `, ${result.errors.length} error${result.errors.length !== 1 ? "s" : ""}` : ""}.</p>
+          {result.errors.map((e, i) => (
+            <p key={i} className="text-xs text-amber-400/70">↳ {e}</p>
+          ))}
         </div>
       )}
       {(status === "error" || status === "timeout") && (
