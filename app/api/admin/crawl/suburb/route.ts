@@ -5,6 +5,22 @@ import { ingestPdfLight, ingestHtmlPage, isHtmlDomain } from "@/lib/crawler/inge
 
 export const maxDuration = 300;
 
+const INGEST_CONCURRENCY = 6;
+
+async function ingestResult(
+  url: string,
+  title: string,
+  suburb: string,
+  region: "au" | "us",
+  supabase: ReturnType<typeof createServiceClient>
+): Promise<{ ok: boolean; reason?: string }> {
+  let outcome = await ingestPdfLight(url, suburb, supabase, region);
+  if (!outcome.ok && outcome.reason === "Not a PDF" && region === "au" && isHtmlDomain(url)) {
+    outcome = await ingestHtmlPage(url, suburb, supabase, region);
+  }
+  return outcome;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { suburb, region = "au" } = await req.json() as { suburb?: string; region?: "au" | "us" };
@@ -20,16 +36,18 @@ export async function POST(req: NextRequest) {
     let docsFound = 0;
     const errors: string[] = [];
 
-    for (const result of results) {
-      let outcome = await ingestPdfLight(result.url, suburb, supabase, region);
-      if (!outcome.ok && outcome.reason === "Not a PDF" && region === "au" && isHtmlDomain(result.url)) {
-        outcome = await ingestHtmlPage(result.url, suburb, supabase, region);
-      }
-      if (outcome.ok) {
-        docsFound++;
-      } else if (outcome.reason !== "Duplicate") {
-        errors.push(outcome.reason);
-        console.log(`[crawl/suburb] ${suburb} — skipped ${result.url}: ${outcome.reason}`);
+    // Ingest in parallel batches to avoid sequential download bottleneck
+    for (let i = 0; i < results.length; i += INGEST_CONCURRENCY) {
+      const batch = results.slice(i, i + INGEST_CONCURRENCY);
+      const outcomes = await Promise.all(
+        batch.map((r) => ingestResult(r.url, r.title, suburb, region, supabase))
+      );
+      for (const outcome of outcomes) {
+        if (outcome.ok) {
+          docsFound++;
+        } else if (outcome.reason !== "Duplicate") {
+          errors.push(outcome.reason ?? "Unknown");
+        }
       }
     }
 
