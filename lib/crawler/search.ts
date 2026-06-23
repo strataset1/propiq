@@ -229,19 +229,35 @@ function isRelevantUsResult(url: string, title: string): boolean {
   return urlMatch || titleMatches >= 2;
 }
 
-async function searchUsWithSerper(suburb: string, city: string, postcode: string | null): Promise<SearchResult[]> {
-  const stateMatch = city.match(/\s+([A-Z]{2})$/);
-  const stateCode = stateMatch?.[1] ?? null;
-  const stateName = stateCode ? (US_STATE_NAMES[stateCode] ?? stateCode) : "Washington";
-  const cleanCity = stateCode ? city.replace(/\s+[A-Z]{2}$/, "").trim() : city;
-  const loc = postcode ? `${cleanCity} ${postcode}` : `${cleanCity} ${stateName}`;
+async function searchUsWithSerper(suburb: string, city: string, postcode: string | null, auState?: string | null): Promise<SearchResult[]> {
+  // auState === "WA" means Washington state (AU parser strips it from suburb name)
+  const isWashington = auState === "WA";
+  const loc = postcode ? `${city} ${postcode}` : `${city}, Washington`;
 
-  const queries = [
-    `"${loc}" "declaration of condominium" filetype:pdf`,
-    `"${loc}" "condominium declaration" filetype:pdf`,
-    `"${loc}" HOA bylaws filetype:pdf`,
-    `"${loc}" "CC&Rs" filetype:pdf`,
-  ];
+  let queries: string[];
+
+  if (isWashington) {
+    const county = WA_COUNTY_BY_CITY[city.replace(" ", "_")] ?? null;
+    queries = [
+      `"${city} Washington" "declaration of condominium" filetype:pdf`,
+      `"${city} WA" HOA bylaws filetype:pdf`,
+      `"${city} Washington" condominium declaration filetype:pdf`,
+      `"${city} WA" "CC&Rs" condominium filetype:pdf`,
+      ...(county ? [`site:${county.toLowerCase()}county.gov "${city}" condominium declaration pdf`] : []),
+    ];
+  } else {
+    const stateMatch = city.match(/\s+([A-Z]{2})$/);
+    const stateCode = stateMatch?.[1] ?? null;
+    const stateName = stateCode ? (US_STATE_NAMES[stateCode] ?? stateCode) : "USA";
+    const cleanCity = stateCode ? city.replace(/\s+[A-Z]{2}$/, "").trim() : city;
+    const fullLoc = postcode ? `${cleanCity} ${postcode}` : `${cleanCity}, ${stateName}`;
+    queries = [
+      `"${fullLoc}" "declaration of condominium" filetype:pdf`,
+      `"${fullLoc}" "condominium declaration" filetype:pdf`,
+      `"${fullLoc}" HOA bylaws filetype:pdf`,
+      `"${fullLoc}" "CC&Rs" filetype:pdf`,
+    ];
+  }
 
   const seen = new Set<string>();
   const results: SearchResult[] = [];
@@ -278,7 +294,7 @@ export async function searchSuburbForPdfs(suburb: string, regionOverride?: "au" 
   const region = regionOverride ?? getRegion(suburb);
 
   if (region === "us" && process.env.SERPER_API_KEY) {
-    return searchUsWithSerper(suburb, city, postcode);
+    return searchUsWithSerper(suburb, city, postcode, state);
   }
 
   if (!process.env.OPENAI_API_KEY) {
