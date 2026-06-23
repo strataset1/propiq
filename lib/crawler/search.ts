@@ -211,8 +211,8 @@ Return ONLY a plain list of direct .pdf URLs, one per line, no explanations, no 
 }
 
 const US_HOA_KEYWORDS = [
-  "bylaw", "by-law", "declaration", "cc&r", "covenant", "hoa", "condo", "condominium",
-  "homeowner", "homeowners", "association", "rules", "regulation", "restriction",
+  "bylaw", "bylaws", "by-law", "ccr", "cc-r", "covenant", "hoa", "condo", "condominium",
+  "homeowner", "homeowners", "declaration-of-condo", "condo-declaration",
 ];
 
 const AU_DOMAINS = [".com.au", ".gov.au", ".net.au", ".org.au", ".edu.au", ".asn.au", ".id.au"];
