@@ -10,6 +10,7 @@ type DocumentRowProps = {
     type: string;
     ingested_via: string;
     properties: { address_raw: string } | null;
+    source_url: string | null;
     isScanned: boolean;
     hasStorage: boolean;
   };
@@ -60,6 +61,14 @@ export function DocumentRow({ doc, processOne, deleteOne }: DocumentRowProps) {
           <p className="text-slate-500 text-xs mt-0.5 font-mono truncate">
             {doc.properties?.address_raw} · {doc.type} · via {doc.ingested_via}
           </p>
+          {doc.source_url && (
+            <a href={doc.source_url} target="_blank" rel="noopener noreferrer"
+              className="text-slate-600 hover:text-slate-400 text-xs font-mono truncate block mt-0.5 max-w-full"
+              title={doc.source_url}
+            >
+              {doc.source_url}
+            </a>
+          )}
           {state === "error" && <p className="text-red-400 text-xs mt-1">{error}</p>}
         </div>
         <div className="shrink-0 flex items-center gap-2">

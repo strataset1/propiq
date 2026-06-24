@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
       line_items: [
         {
           price_data: {
-            currency: "aud",
+            currency: "usd",
             unit_amount: 995,
             product_data: {
               name: doc.label ?? "Strata By-Laws Document",

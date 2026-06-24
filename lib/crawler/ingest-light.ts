@@ -92,6 +92,7 @@ export async function ingestPdfLight(
       return { ok: false, reason: "Not a PDF" };
     }
     buffer = Buffer.from(await res.arrayBuffer());
+    if (buffer.length < 15000) return { ok: false, reason: "Too small (likely cover page or blank)" };
   } catch {
     return { ok: false, reason: "Download failed or timed out" };
   }

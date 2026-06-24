@@ -317,12 +317,18 @@ async function importGreencliff(): Promise<{ ok: true; queued: number } | { ok: 
 export default async function AdminQueuePage() {
   const supabase = createServiceClient();
 
-  const { data: docs } = await supabase
-    .from("documents")
-    .select("id, label, type, ingested_via, processed_at, created_at, extracted_text, storage_path, properties(address_raw)")
-    .is("processed_at", null)
-    .order("created_at", { ascending: false })
-    .limit(500);
+  const [{ data: docs }, { count: totalPending }] = await Promise.all([
+    supabase
+      .from("documents")
+      .select("id, label, type, ingested_via, processed_at, created_at, extracted_text, storage_path, source_url, properties(address_raw)")
+      .is("processed_at", null)
+      .order("created_at", { ascending: false })
+      .limit(100),
+    supabase
+      .from("documents")
+      .select("*", { count: "exact", head: true })
+      .is("processed_at", null),
+  ]);
 
   const { data: batches } = await supabase
     .from("processing_batches")
@@ -337,13 +343,13 @@ export default async function AdminQueuePage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-xl font-semibold text-white">Processing Queue</h1>
-          <p className="text-slate-400 text-sm mt-1">{docs?.length ?? 0} documents awaiting processing</p>
+          <p className="text-slate-400 text-sm mt-1">{totalPending ?? 0} documents awaiting processing</p>
         </div>
         <div className="flex gap-2 flex-wrap">
           <BackfillLiabilityButton getPending={getPendingLiabilityIds} processBatch={processLiabilityBatch} />
           <ProcessButton processAction={importGreencliff} label="Import Greencliff (123 docs)" />
           {docsWithText.length > 0 && <ProcessButton processAction={processQueue} label="Batch Process (text)" />}
-          {docs && docs.length > 0 && <ProcessButton processAction={processAllVision} label={`Process All ${docs.length} (vision)`} />}
+          {(totalPending ?? 0) > 0 && <ProcessButton processAction={processAllVision} label={`Process All ${totalPending} (vision)`} />}
         </div>
       </div>
 
@@ -387,6 +393,7 @@ export default async function AdminQueuePage() {
               type: doc.type,
               ingested_via: doc.ingested_via,
               properties: doc.properties as { address_raw: string } | null,
+              source_url: doc.source_url ?? null,
               isScanned: !doc.extracted_text || doc.extracted_text.length <= 200,
               hasStorage: !!doc.storage_path,
             }}
