@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/api/with-auth";
 import { normaliseAddress } from "@/lib/utils/address";
-import { findPropertyByAddress, findPropertySummary, createProperty } from "@/lib/db/properties";
+import { findPropertyByAddress, findPropertySummary } from "@/lib/db/properties";
 import { findDocumentsByProperty } from "@/lib/db/documents";
 import { recordUsage } from "@/lib/api/quota";
 import { apiError, ApiErrorCode } from "@/lib/api/errors";
@@ -22,19 +22,20 @@ export const GET = withAuth(async (req: NextRequest, _ctx, { org, apiKey }) => {
   const normalised = await normaliseAddress(address);
   const property = await findPropertyByAddress(normalised, supabase);
 
-  // Property not found — create a record and trigger discovery
+  // Property not found
   if (!property) {
-    const created = await createProperty(address, normalised, supabase);
-    // TODO (crawler integration): trigger discovery job for created.id
-    const jobId = `job_${created.id}`;
-    await recordUsage(org.id, apiKey.id, "/v1/property/search", created.id, supabase);
-    return NextResponse.json({ job_id: jobId, message: "Discovery triggered" }, { status: 202 });
+    return NextResponse.json(
+      { error: { code: "NOT_FOUND", message: "No documents found for this address. Documents are indexed by suburb — try searching a nearby address, or contact us to request coverage for this area." } },
+      { status: 404 }
+    );
   }
 
-  // Property found but not ready yet
+  // Property found but documents not yet processed
   if (property.status !== "ready") {
-    const jobId = `job_${property.id}`;
-    return NextResponse.json({ job_id: jobId, message: "Property is being processed" }, { status: 202 });
+    return NextResponse.json(
+      { error: { code: "PROCESSING", message: "Documents for this address have been found but are still being processed. Please try again in a few minutes." } },
+      { status: 202 }
+    );
   }
 
   // Property ready — return full result
