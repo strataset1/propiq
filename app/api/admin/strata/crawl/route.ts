@@ -5,6 +5,11 @@ import { searchByLawsForSp } from "@/lib/crawler/strata-bylaws";
 export const maxDuration = 300;
 
 export async function POST(req: NextRequest) {
+  const secret = req.headers.get("x-admin-secret");
+  if (secret !== process.env.ADMIN_SECRET) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const { sp_number } = (await req.json()) as { sp_number?: string };
     if (!sp_number) return NextResponse.json({ error: "sp_number required" }, { status: 400 });

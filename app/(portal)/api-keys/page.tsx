@@ -91,7 +91,18 @@ export default async function ApiKeysPage({
     if (!user) return;
 
     const service = createServiceClient();
-    await service.from("api_keys").update({ is_active: false }).eq("id", id);
+    const org = await service
+      .from("organisations")
+      .select("id")
+      .eq("owner_email", user.email!)
+      .single();
+    if (!org.data) return;
+
+    await service
+      .from("api_keys")
+      .update({ is_active: false })
+      .eq("id", id)
+      .eq("org_id", org.data.id);
 
     redirect("/api-keys");
   }

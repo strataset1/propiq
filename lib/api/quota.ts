@@ -21,6 +21,11 @@ export async function checkQuota(
 
   const used = error ? 0 : (count ?? 0);
 
+  // -1 means unlimited (enterprise)
+  if (monthlyQuota === -1) {
+    return { allowed: true, used, remaining: Infinity };
+  }
+
   if (used >= monthlyQuota) {
     return { allowed: false, used, remaining: 0 };
   }

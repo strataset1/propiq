@@ -26,7 +26,7 @@ async function uploadDocument(formData: FormData): Promise<{ ok: true; documentI
 
   const data = await res.json();
   if (res.ok) {
-    return { ok: true, documentId: data.document_id };
+    return { ok: true, documentId: data.documentId };
   }
   return { ok: false, error: data.error ?? "Upload failed" };
 }

@@ -4,6 +4,11 @@ import { createServiceClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
+  const secret = req.headers.get("x-admin-secret");
+  if (secret !== process.env.ADMIN_SECRET) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const lga = req.nextUrl.searchParams.get("lga") ?? "";
   const supabase = createServiceClient();
 

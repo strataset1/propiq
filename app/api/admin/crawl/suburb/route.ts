@@ -22,6 +22,11 @@ async function ingestResult(
 }
 
 export async function POST(req: NextRequest) {
+  const secret = req.headers.get("x-admin-secret");
+  if (secret !== process.env.ADMIN_SECRET) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const { suburb, region = "au" } = await req.json() as { suburb?: string; region?: "au" | "us" };
     if (!suburb) return NextResponse.json({ error: "suburb required" }, { status: 400 });
