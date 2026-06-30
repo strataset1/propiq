@@ -33,7 +33,7 @@ export default async function DashboardPage() {
         <div>
           <p className="text-white font-medium">Account not linked to an organisation</p>
           <p className="text-slate-400 text-sm mt-1">
-            Email <a href="mailto:sales@strataset.com.au" className="text-amber-400 hover:underline">sales@strataset.com.au</a> to get API access set up.
+            Email <a href="mailto:bylawsindex@gmail.com" className="text-amber-400 hover:underline">bylawsindex@gmail.com</a> to get API access set up.
           </p>
         </div>
         <form action={signOut}>
